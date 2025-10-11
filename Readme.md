@@ -1,0 +1,2523 @@
+
+# React Native, Redux & Express – Server Setup (Spotify Project)
+
+## 1. Project Initialization
+
+- Create a new project folder (e.g., `Spotify`).
+- Inside it, create a **`server`** folder for backend files.
+- Open the `server` folder in terminal.
+- Initialize npm with default values:
+
+```bash
+npm init -y
+```
+- This creates `package.json` with default settings.
+
+***
+
+## 2. Install Dependencies
+
+### Main Dependency:
+
+```bash
+npm install express
+```
+
+### Dev Dependencies:
+```bash
+npm install -D @types/express typescript @types/node ts-node-dev
+```
+
+**Purpose of each:**
+- `@types/express` → Type definitions for Express
+- `typescript` → TypeScript compiler (installed locally so project runs anywhere)
+- `@types/node` → Node.js type definitions
+- `ts-node-dev` → Runs TypeScript directly (like nodemon, but for TS)
+
+***
+
+## 3. Update `package.json` Scripts
+
+Replace `"test": "..."` with:
+```json
+"scripts": {
+  "dev": "ts-node-dev --respawn --pretty --transpile-only src/index.ts"
+}
+```
+
+**Flags explained:**
+- `--respawn` → Restart server on file change
+- `--pretty` → Prettified terminal output
+- `--transpile-only` → Skips type checking for faster dev mode
+- Entry file: `src/index.ts`
+
+***
+
+## 4. Create Project Structure
+
+```
+server/
+  ├─ src/
+  │   └─ index.ts
+  ├─ package.json
+  ├─ tsconfig.json
+```
+
+***
+
+## 5. Create `tsconfig.json`
+
+Use the same settings as learned in previous section (customize if needed).  
+Example minimal setup:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+***
+
+## 6. Basic Express Server (`src/index.ts`)
+
+```ts
+import express from 'express';
+
+const app = express();
+const PORT = 8989;
+
+app.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
+```
+
+***
+
+## 7. Run the Server
+```bash
+npm run dev
+```
+Expected terminal output:
+```
+Server is listening on port 8989
+```
+
+If errors occur, review previous section setup instructions or ask for help.
+
+***
+
+**✅ Key Points:**
+- Installed **TypeScript locally** so collaborators don't need a global TS install.
+- Used `ts-node-dev` for live reload in development.
+- Organized server code inside `src/` for clarity.
+- Configured scripts & `tsconfig.json` for TypeScript backend development.
+
+
+
+--------------------
+
+***
+
+# React Native, Redux & Express – Feature Planning & Auth Requirements (Spotify API)
+
+## 1. Planned Core Features
+
+- **Upload audio files**
+- **Listen to single audio**
+- Add audio to **favorites**
+- **Create playlists**
+  - Playlists can be **public** or **private**
+- **Remove playlists**
+- **Remove audios**
+- Follow the **author**
+- Support for many other typical features ("...and many more")
+
+***
+
+## 2. Authorization & User Roles
+
+- Operations (create/remove audio/playlists, add to favorite, etc.) should only be performed by **authorized users**
+- Access control based on **ownership**:
+  - Users should only be able to modify/delete their own data (audio files, playlists, favorites)
+- Must assign and enforce user **roles** and permissions in the API
+
+***
+
+## 3. Authentication Workflow
+
+- Implement **Sign Up** route (user registration)
+- Implement **Sign In** route (user login)
+- Only **authenticated/verified users** can access privileged features (upload, create, modify, delete)
+
+***
+
+## 4. Database Setup
+
+- Need a database to **store user info** (for authentication, ownership, favorites, playlists, etc.)
+- On user login:
+  - Validate credentials (email & password) against stored records
+  - Authorize access based on successful validation
+
+*** 
+
+## 5. Next Steps
+
+- **Set up the database** (for user storage & authentication)
+- Database configuration and routes for auth will be handled in the next video
+
+***
+
+**✅ Key Points:**
+- App will support uploads, favorites, playlists, follows, and more—behind authentication
+- **User authorization and role enforcement** is required for secure data operations
+- Authentication is fundamental—be sure to set up DB before moving forward!
+
+***
+
+
+Here is a quick reference cheat sheet for the key features and authentication flow in your Spotify API project with React Native, Redux & Express:
+
+***
+
+# Quick Reference Cheat Sheet – Spotify API Features & Auth
+
+## Core Features
+- Upload audio files
+- Listen to single audio tracks
+- Add audio files to favorites
+- Create playlists (public or private)
+- Remove playlists
+- Remove audio files
+- Follow authors/users
+
+***
+
+## Authentication & Authorization
+
+### User Authentication
+- **Sign Up route**: Register new users
+- **Sign In route**: Authenticate existing users
+- Users must be signed in (authenticated) to perform protected operations
+
+### Authorization & Access Control
+- Users can only modify/delete their own data (audio, playlists, favorites)
+- Implement user roles and permissions to enforce these restrictions in the API
+
+***
+
+## Database Setup
+- Store user credentials (email, password) and profile data
+- Validate credentials on sign-in for user authentication
+- Store playlists, favorites, and audio ownership info associated with users
+
+***
+
+## API Operations Overview
+| Operation              | Requires Authentication | Ownership Check Needed? |
+|------------------------|------------------------|------------------------|
+| Upload audio file      | Yes                    | Yes                    |
+| Listen to audio       | Depends (public/private)| No for public; Yes for private |
+| Add to favorites       | Yes                    | Yes                    |
+| Create playlist       | Yes                    | N/A (creates new)      |
+| Remove playlist       | Yes                    | Yes                    |
+| Remove audio          | Yes                    | Yes                    |
+| Follow author         | Yes                    | No                     |
+
+***
+
+## Next Steps
+- Set up database for user & media storage
+- Implement authentication routes (Sign Up & Sign In)
+- Apply middleware for authorization on protected routes
+- Handle ownership verification within route controllers
+
+***
+
+Core Features
+    Upload audio files
+
+    Listen to single audio tracks
+
+    Add audio files to favorites
+
+    Create playlists (public or private)
+
+    Remove playlists
+
+    Remove audio files
+
+    Follow authors/users
+
+Authentication & Authorization
+User Authentication
+    Sign Up route: Register new users
+
+    Sign In route: Authenticate existing users
+
+    Users must be signed in (authenticated) to perform protected operations
+
+Authorization & Access Control
+    Users can only modify/delete their own data (audio, playlists, favorites)
+
+    Implement user roles and permissions to enforce these restrictions in the API
+
+Database Setup
+    Store user credentials (email, password) and profile data
+
+    Validate credentials on sign-in for user authentication
+
+    Store playlists, favorites, and audio ownership info associated with users
+
+
+-----------------------------------------------------
+
+***
+
+# React Native, Redux & Express – MongoDB Setup with Mongoose and Environment Variables
+
+## 1. Installing Required Packages
+
+- Install **Mongoose** for MongoDB connection and data handling:
+  ```bash
+  npm install mongoose
+  ```
+- Install TypeScript types for Mongoose as a dev dependency:
+  ```bash
+  npm install -D @types/mongoose
+  ```
+- Install **dotenv** for environment variable management:
+  ```bash
+  npm install dotenv
+  ```
+- Install TypeScript types for dotenv as a dev dependency:
+  ```bash
+  npm install -D @types/dotenv
+  ```
+
+## 2. Setup Database Connection Folder and File
+
+- Create a folder named `db` in your project root.
+- Inside `db`, create a file named `index.ts`.
+
+## 3. Establish MongoDB Connection in `db/index.ts`
+
+- Import Mongoose:
+  ```ts
+  import mongoose from 'mongoose';
+  ```
+- Define the connection URI using environment variables:
+  ```ts
+  const URI: string = process.env.MONGO_URI as string;
+  ```
+- Connect to MongoDB:
+  ```ts
+  mongoose.connect(URI)
+    .then(() => console.log("DB is connected"))
+    .catch((err) => console.log("DB connection failed", err));
+  ```
+- Handle errors and successful connection with console logging.
+
+## 4. Use the Database Connection in Your Application Entry Point
+
+- Import the DB connection at the top of your entry file (e.g., `src/index.ts`) **after** importing Express:
+  ```ts
+  import './db';
+  ```
+- The order of this import matters to ensure the DB connection is established before the app starts.
+
+## 5. Configure Environment Variables
+
+- Create a `.env` file in your project root.
+- Add the MongoDB URI to `.env`:
+  ```
+  MONGO_URI=mongodb://localhost:27017/Spotify
+  ```
+  - `localhost:27017` is the default MongoDB server URI for local setup.
+  - `Spotify` is the name of your database.
+- Make sure MongoDB is installed and running locally on your system to use this URI.
+
+## 6. Load Environment Variables
+
+- Import and configure dotenv at the top of your entry file (before using any environment variables):
+  ```ts
+  import 'dotenv/config';
+  ```
+
+## 7. Run Your Project
+
+- Restart your server with:
+  ```bash
+  npm run dev
+  ```
+- If everything is set up correctly, you should see:
+  ```
+  DB is connected
+  ```
+- If the URI is missing or incorrect, you will see an error logged.
+
+***
+
+## Notes
+
+- Using environment variables keeps sensitive info like DB URIs secure and configurable.
+- Installing TypeScript types locally helps prevent errors for contributors who don’t have global TS installed.
+- The dotenv package automatically loads variables from `.env` into `process.env`.
+
+***
+
+
+---------------------
+
+Got it ✅  
+Here are **clear, structured notes** from the transcript, ready for your **README.md** or personal reference in VS Code:
+
+***
+
+# MongoDB Installation on macOS (Community Edition) – Monster Course "M"
+
+## 1. Accessing the Installation Guide
+- Go to **[mongodb.com](https://www.mongodb.com)**
+- Navigate:
+  1. **Resources** → **Developer Center**
+  2. **Documentation**
+  3. **Use MongoDB**
+  4. **Installation** (left sidebar)
+  5. Select **Community Edition**
+  6. Choose **macOS** as the operating system
+
+***
+
+## 2. Prerequisites
+- Installing **Homebrew** also installs required **Xcode Command Line Tools**, so no extra steps for Mac if Homebrew is already set up.
+
+***
+
+## 3. Install MongoDB via Homebrew
+
+```bash
+# Add MongoDB official tap
+brew tap mongodb/brew
+
+# (Optional) Update Homebrew
+brew update
+
+# Install MongoDB Community Edition
+brew install mongodb-community
+```
+
+🕑 Installation time: ~2 minutes at normal internet speed.
+
+***
+
+## 4. Start MongoDB Server (macOS)
+
+> The `mongod` server must be running before you can interact with MongoDB.
+
+- Depending on your Mac’s CPU architecture, commands vary slightly:
+  - Use the provided **Intel Mac** or **Apple Silicon Mac** command from MongoDB docs.
+- Example to run MongoDB server in foreground:
+```bash
+mongod --config /opt/homebrew/etc/mongod.conf --fork
+```
+*(Replace path according to your installation)*
+
+***
+
+## 5. Verify MongoDB Installation
+- After starting the server, in another terminal, check the MongoDB shell:
+```bash
+mongosh
+```
+If connected, you’ll see options and server details, including:
+- Listening port (default **27017**)
+- MongoDB version
+
+***
+
+## 6. View Default Databases
+From `mongosh`, run:
+```bash
+show dbs
+```
+This lists default databases supplied by MongoDB.
+
+***
+
+## 7. Stopping MongoDB Server
+- If running MongoDB in the foreground, stop with:
+```
+CTRL + C
+```
+- If running as a service, stop with:
+```bash
+brew services stop mongodb-community
+```
+
+***
+
+### ✅ Key Points:
+- Always **start MongoDB server** before trying to connect from your application.
+- Default port: **27017**
+- Use `show dbs` to see current databases.
+- You’ll create custom databases later during development.
+
+***
+
+--------------------------
+
+***
+
+# Understanding `.env` and Environment Variables in Node.js
+
+## 1. Purpose of `.env` File
+- `.env` stands for **environment file**.
+- Stores **sensitive information** for your application.  
+  Examples:
+  - Database connection URLs
+  - Database usernames & passwords
+  - API keys
+  - Secret tokens
+- Keeps sensitive data **out of your source code** to avoid accidental leaks (e.g., via GitHub).
+
+***
+
+## 2. How It Works in Our Project
+- In previous setup, we added:
+  ```
+  MONGO_URI=mongodb://localhost:27017/Spotify
+  ```
+  - This holds our **local MongoDB connection string**.
+  - In the future, for production, this will store the **real database URI with username & password**.
+- Environment variables declared in `.env` are **only available inside this project** when loaded.
+
+***
+
+## 3. Why We Need the `dotenv` Package
+- **Node.js** does **not read `.env` files natively**.
+- We use [`dotenv`](https://www.npmjs.com/package/dotenv) to load variables from `.env` into `process.env`.
+- Steps:
+  1. Install:
+     ```bash
+     npm install dotenv
+     ```
+  2. Import and configure in your entry file (`src/index.ts`):
+     ```ts
+     import 'dotenv/config';
+     ```
+  3. **Order matters**:
+     - Load dotenv **before** using `process.env`.
+     - Example:  
+       ```ts
+       import 'dotenv/config';
+       import './db'; // uses process.env.MONGO_URI
+       ```
+
+***
+
+## 4. Example Usage
+Instead of hardcoding:
+```ts
+const URI = "mongodb://localhost:27017/Spotify";
+```
+We use:
+```ts
+const URI = process.env.MONGO_URI as string;
+```
+
+Another example for **Port number**:
+```ts
+const PORT = process.env.PORT || 8989;
+```
+- Uses server's port in production.
+- Falls back to **8989** in local development.
+
+***
+
+## 5. Important Notes
+- `.env` file should be in **root directory**.
+- **Never commit your `.env` file** to source control.  
+  Add to `.gitignore`:
+  ```
+  .env
+  ```
+- Always import `dotenv` **before** trying to use environment variables.
+- Variables in `.env` are **strings** by default—convert if you need numbers/booleans.
+
+***
+
+✅ **Key Takeaways**:
+- `.env` = secure location for sensitive data.
+- `dotenv` loads it into `process.env`.
+- The import order is critical—load it before usage.
+- Works for **both local** and **production** environments with different variable values.
+
+***
+
+--------------------------------
+
+
+***
+
+# Refactoring Environment Variables Handling in Node.js (with TypeScript)
+
+## 1. Warnings in Mongoose
+- Mongoose is **actively maintained**, so warnings are common and often temporary.
+- Solutions for warnings are usually provided in the message itself—copy and apply them if needed.
+- Restarts may clear warnings once fixed.
+
+***
+
+## 2. Current Setup Recap
+- Previously used environment variables directly:
+  ```ts
+  const URI = process.env.MONGO_URI as string;
+  ```
+- This works, but is less organized and may require repeating code.
+
+***
+
+## 3. Creating a Centralized `variables.ts`
+To improve maintainability:
+1. Create a folder:
+   ```
+   src/utils/
+   ```
+2. Inside it, create:
+   ```
+   variables.ts
+   ```
+3. Move the variable extraction there:
+   ```ts
+   const mongoUri: string = process.env.MONGO_URI as string;
+
+   export { mongoUri };
+   ```
+4. Import wherever needed:
+   ```ts
+   import { mongoUri } from '../utils/variables';
+   ```
+
+***
+
+## 4. Improving Type Safety with Destructuring
+
+Instead of accessing `process.env` directly everywhere:
+
+```ts
+// src/utils/variables.ts
+const { env }: { env: { [key: string]: string } } = process;
+
+export const { MONGO_URI: mongoUri } = env;
+```
+
+But here You are telling TypeScript:
+
+“Nope, env will only have string values, never undefined.”
+
+TypeScript says:
+
+“That’s not safe — some keys might be missing.”
+
+You have two options:
+
+1️⃣ Allow undefined in the type
+
+``` 
+const { env }: { env: { [key: string]: string | undefined } } = process;
+export const { MONGO_URI: mongoUri } = env;
+
+```
+OR 
+
+```
+export const mongoUri = process.env.MONGO_URI as string;
+
+```
+
+### Benefits:
+- **Type safety**: Each env variable is typed as `string`.
+- **No need to cast** with `as string` every time.
+- **Centralized variables** for easier management.
+- **Cleaner imports** across the project.
+
+***
+
+## 5. Notes on Usage
+- This approach **requires** that the variable exists in `.env`.
+- If the variable is missing, it will cause problems at runtime—always define required vars in `.env` or the deployment environment.
+- Works for any new variable, not just `MONGO_URI`.
+- Example `.env`:
+  ```env
+  MONGO_URI=mongodb://localhost:27017/Spotify
+  PORT=8989
+  JWT_SECRET=your_jwt_secret_here
+  ```
+
+***
+
+## 6. Example: Using `mongoUri` in DB Connection
+
+```ts
+// src/db/index.ts
+import mongoose from 'mongoose';
+import { mongoUri } from '../utils/variables';
+
+mongoose.connect(mongoUri)
+  .then(() => console.log("DB is connected"))
+  .catch((err) => console.error("DB connection failed", err));
+```
+
+***
+
+✅ **Key Takeaways**
+- Centralizing `process.env` access makes code cleaner & type-safe.
+- Use destructuring to avoid repetitive casting.
+- Always **import and configure dotenv** (`import 'dotenv/config'`) before using env variables.
+- Keep `.env` in `.gitignore` to protect sensitive info.
+
+***
+
+----------------------------
+
+***
+
+# Using Path Aliases in a TypeScript Node.js Project
+
+## Problem with Relative Paths
+- Deeply nested file structures result in cumbersome imports like:
+  ```ts
+  import { something } from '../../../models/users';
+  ```
+  - Multiple `../` make code hard to read and maintain.
+- This complexity increases as more nested folders are added.
+
+## Solution: Path Aliases
+- Use **path aliases** to replace relative paths with simple, consistent symbols.
+- Example: replace `../../../models/users` with `#models/users` or similar.
+
+***
+
+## Steps to Implement Path Aliases
+
+### 1. Install `tsconfig-paths` for Development
+- This package integrates with TypeScript to resolve aliases during development.
+- Install as a dev dependency:
+  ```bash
+  npm install -D tsconfig-paths
+  ```
+
+### 2. Define Aliases in `tsconfig.json`
+- Open `tsconfig.json` and add/update the `paths` option inside `compilerOptions`:
+  ```json
+  {
+    "compilerOptions": {
+      ...
+      "baseUrl": "./src",
+      "paths": {
+        "#/*": ["*"]
+      }
+    }
+  }
+  ```
+- This configuration means:  
+  `#` alias maps to the `src` folder root, so `#models/users` points to `src/models/users`.
+
+### 3. Modify `package.json` Dev Script
+- Update your dev start script to register the `tsconfig-paths` module so aliases work at runtime:
+  ```json
+  "scripts": {
+    "dev": "ts-node-dev -r tsconfig-paths/register --respawn --pretty --transpile-only src/index.ts"
+  }
+  ```
+- The `-r tsconfig-paths/register` ensures runtime resolves the aliases.
+
+### 4. Usage Example in Code
+- Instead of:
+  ```ts
+  import { User } from '../../models/users';
+  ```
+- Use:
+  ```ts
+  import { User } from '#models/users';
+  ```
+- This simplifies import statements and improves maintainability.
+
+***
+
+## 5. Build & Production Considerations
+- TypeScript understands aliases, but compiled JavaScript does not.
+- After building the project, aliases remain in JS imports and will fail at runtime without transformation.
+
+### 6. Use `tsc-alias` to Fix Paths in Compiled JS
+- Install `tsc-alias` as dev dependency:
+  ```bash
+  npm install -D tsc-alias
+  ```
+- Modify your build script in `package.json`:
+  ```json
+  "scripts": {
+    "build": "tsc && tsc-alias"
+  }
+  ```
+- This runs TypeScript compilation (`tsc`) then replaces alias paths in output files with relative paths.
+
+***
+
+## 7. After Build
+- The compiled JavaScript files in `dist/` will have fixed import paths without aliases.
+- This ensures Node.js runtime can successfully resolve all imports.
+
+***
+
+## Summary
+
+| Step                 | Action                                | Purpose                                 |
+|----------------------|-------------------------------------|-----------------------------------------|
+| 1                    | Install `tsconfig-paths`             | Enable alias resolution during dev      |
+| 2                    | Configure `paths` in `tsconfig.json`| Define alias mappings                    |
+| 3                    | Update dev script with `-r tsconfig-paths/register` | Enable aliases at runtime in dev mode    |
+| 4                    | Import modules using aliases          | Simplify import statements               |
+| 5                    | Install `tsc-alias`                   | Fix aliases in compiled JS               |
+| 6                    | Update build script with `tsc-alias` | Ensure production build works correctly  |
+
+***
+
+This setup will make your imports clean and scalable for large projects while maintaining compatibility during development and production builds.
+
+-------------------------
+
+
+***
+
+# **User Model Setup in Mongoose with TypeScript**
+
+## **1. Purpose of a User Model**
+- Acts as a **blueprint** for storing and managing user data in MongoDB.
+- Just like a building needs a **blueprint** for layout (rooms, windows, doors), an application needs a **schema** to define:
+  - The structure of the data
+  - Required vs optional fields
+  - Data types
+
+***
+
+## **2. Creating the User Model File**
+- Location: `src/models/user.ts`
+- Structure:
+  - Define **TypeScript interface** for type safety
+  - Create **Mongoose Schema** with validation rules
+  - Export **Mongoose Model** for usage in controllers
+
+***
+
+## **3. TypeScript Interface**
+
+```ts
+import { ObjectId } from 'mongoose';
+
+export interface UserDocument {
+  name: string;
+  email: string;
+  password: string;
+  verified: boolean;
+  avatar?: {
+    url: string;
+    public_id: string;
+  };
+  tokens: string[];
+  favorites: ObjectId[];
+  followers: ObjectId[];
+  followings: ObjectId[];
+}
+```
+- `avatar` is **optional** (`?`)
+- `tokens` is an **array** of strings for multi-device auth
+- `favorites`, `followers`, `followings` are arrays of `ObjectId`
+
+***
+
+## **4. Creating the Mongoose Schema**
+```ts
+import { Schema, model, Model } from 'mongoose';
+import { UserDocument } from '../types';
+
+const userSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, unique: true },
+    password: { type: String, required: true },
+    avatar: {
+      url: String,
+      public_id: String
+    },
+    verified: { type: Boolean, default: false },
+    favorites: [{ type: Schema.Types.ObjectId, ref: 'audio' }],
+    followers: [{ type: Schema.Types.ObjectId, ref: 'user' }],
+    followings: [{ type: Schema.Types.ObjectId, ref: 'user' }],
+    tokens: [String]
+  },
+  { timestamps: true }
+);
+```
+
+**Key Points:**
+- `unique: true` on email → only one account per email
+- `default: false` on `verified`
+- `ref` is used to **populate related documents**:
+  - `favorites` → refers to `audio` collection
+  - `followers` / `followings` → refers to `user` collection
+- `timestamps: true` → automatically adds `createdAt` & `updatedAt`
+
+***
+
+## **5. Creating and Exporting the Model**
+```ts
+const User: Model = model('user', userSchema);
+
+export default User;
+```
+- Model name `'user'` **must match** the `ref` values used above
+
+***
+
+## **6. Why References Are Important**
+- **Example:** When fetching a user's `favorites`, Mongoose can automatically populate details from the **audio model** instead of just returning ObjectIds.
+- Ensures relationships between collections.
+
+***
+
+## **7. Summary Table**
+
+| Field         | Type                         | Required | Default | Unique | Notes                       |
+|---------------|-----------------------------|----------|---------|--------|-----------------------------|
+| `name`        | String                       | ✅       | -       | ❌     | Trimmed before saving       |
+| `email`       | String                       | ✅       | -       | ✅     | Trimmed, unique per user    |
+| `password`    | String                       | ✅       | -       | ❌     | Stored hashed               |
+| `avatar`      | Object `{url, public_id}`    | ❌       | -       | ❌     | Profile picture info        |
+| `verified`    | Boolean                      | ❌       | false   | ❌     | Email verification status   |
+| `tokens`      | Array\              | ❌       | -       | ❌     | JWT or session tokens       |
+| `favorites`   | Array\            | ❌       | -       | ❌     | Ref to `audio` model        |
+| `followers`   | Array\            | ❌       | -       | ❌     | Ref to `user` model         |
+| `followings`  | Array\            | ❌       | -       | ❌     | Ref to `user` model         |
+
+***
+
+## **8. Best Practices**
+- Always **match** `ref` values to the target model names.
+- Use `timestamps` to track data changes.
+- Mark fields optional in **TypeScript interface** if they are not required in schema.
+- Store sensitive info (like hashed passwords) securely.
+- Keep schema in `models/` folder, separated from controllers.
+
+***
+
+✅ With this user model in place:
+- You can create, query, and update users
+- Easily populate related `favorites`, `followers`, `followings`
+- Maintain clean, type-safe code
+
+***
+
+
+---------------------------------------
+
+
+***
+
+# **User Registration Route Setup (Express + TypeScript + Mongoose)**
+
+## **1. Goal**
+- Connect the previously created **User schema/model** to an **API route** so users can be created from HTTP requests.
+
+***
+
+## **2. Steps Implemented**
+
+### **a. Registering Auth Router in `index.ts`**
+```ts
+// src/index.ts
+
+import express from 'express';
+import authRouter from './routers/auth'; // using path alias if configured
+
+const app = express();
+
+// Middleware for JSON and URL encoding
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// All auth endpoints start with /auth
+app.use('/auth', authRouter);
+
+app.listen(process.env.PORT || 8989, () => {
+  console.log('Server is running...');
+});
+```
+**Why these middleware?**
+- `express.json()` → parse incoming JSON request bodies.
+- `express.urlencoded({ extended: false })` → parse form URL-encoded data.
+
+***
+
+### **b. Creating the Auth Router (`src/routers/auth.ts`)**
+```ts
+import { Router } from 'express';
+import User from '#/models/user'; // Path alias or relative import
+
+const router = Router();
+
+// Create (Sign Up) route
+router.post('/create', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    // Option 1: Using new User + save()
+    // const newUser = new User({ name, email, password });
+    // await newUser.save();
+
+    // Option 2: Using User.create()
+    const newUser = await User.create({ name, email, password });
+
+    // Send created user back as JSON (will include default fields)
+    res.json(newUser);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
+```
+**Key Points:**
+- `await User.create(...)` is **simpler** than using `new User()` + `.save()`.
+- `async/await` is required for asynchronous Mongoose operations.
+- No validation logic yet — raw values from `req.body` are saved.
+
+***
+
+### **c. Required Fields at This Stage**
+From the `User` model:
+- **Required now:**  
+  `name`, `email`, `password`
+- **Auto-handled / defaults now:**  
+  `verified = false`, `avatar` not required, `tokens` empty, relational arrays empty.
+- Validation for correct email/password format isn't done yet — will be added later.
+
+***
+
+## **3. Testing with Postman**
+
+### **Postman Setup**
+- **Create a collection:**  
+  Name: `Spotify Server`
+- **Create request inside collection:**  
+  Name: `Create User`  
+  Method: **POST**  
+  URL:
+  ```
+  http://localhost:8989/auth/create
+  ```
+- **Body** → **raw** JSON:
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@email.com",
+    "password": "123456"
+  }
+  ```
+
+***
+
+**Expected Response Example**:
+```json
+{
+  "_id": "66d0a41dec898a7ceff73e67",
+  "name": "John Doe",
+  "email": "john@email.com",
+  "password": "123456",
+  "verified": false,
+  "favorites": [],
+  "followers": [],
+  "followings": [],
+  "tokens": [],
+  "createdAt": "2025-08-14T14:25:33.123Z",
+  "updatedAt": "2025-08-14T14:25:33.123Z",
+  "__v": 0
+}
+```
+
+***
+
+## **4. Common Errors & Fixes**
+- **`req.body is not a function`** → Happens if you accidentally invoke `req.body()` instead of treating it like an object.
+- **Empty fields being accepted** → Because Mongoose only enforces `"required"` for missing fields, not for trimming/format validation, explicit validation middleware is needed.
+- **Duplicate variable names (`user` vs `User`)** → Capitalized `User` for model, lowercase for object instance (to avoid confusion).
+
+***
+
+## **5. MongoDB Compass Check**
+- Connect to your MongoDB instance.
+- Database: `Spotify`
+- Collection: `users`
+- You’ll see the inserted users with required/default fields populated.
+
+***
+
+## **6. Next Steps**
+- Fix `any` type issue in controller input by creating a **typed request body interface**.
+- Add **validation middleware** for:
+  - Email format
+  - Password strength
+  - Duplicate emails
+- Encrypt password before saving (e.g., with bcrypt).
+- Return a cleaner response (omit password field).
+
+***
+
+✅ **At this stage:** You can send POST requests to `/auth/create` to insert new user documents into MongoDB.
+
+***
+
+-----------------
+
+***
+
+# **Type-Safe Request Body for `Create User` Route (Express + TypeScript)**
+
+## **1. Problem**
+- In the `/auth/create` route, `req.body` properties (`name`, `email`, `password`) were inferred as `any`.
+- Without proper typing, we lose:
+  - IntelliSense support
+  - Compile-time error checking
+  - Developer clarity
+
+***
+
+## **2. Solution Overview**
+- Create a **custom type** that extends `express.Request` and defines the shape of `req.body` specifically for the **Create User** request.
+
+***
+
+## **3. Folder Structure (Convention)**
+```
+src/
+ ├─ @types/
+ │    └─ user.ts    # Custom request type for user routes
+ ├─ routers/
+ │    └─ auth.ts
+ ├─ models/
+ │    └─ user.ts
+```
+> `@types` is just a naming convention — the folder can be called anything.
+
+***
+
+## **4. Defining the Type**
+```ts
+// src/@types/user.ts
+import { Request } from 'express';
+
+export interface CreateUserRequest extends Request {
+  body: {
+    name: string;
+    email: string;
+    password: string;
+  };
+}
+```
+
+**Key Points:**
+- Extends `Request` from `express`
+- Overrides the `body` type with our expected fields
+- Only includes fields needed for **creating a user** (not all from User model)
+
+***
+
+## **5. Using the Type in the Router**
+```ts
+// src/routers/auth.ts
+import { Router } from 'express';
+import User from '#/models/user';
+import { CreateUserRequest } from '#/@types/user';
+
+const router = Router();
+
+router.post('/create', async (req: CreateUserRequest, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    const newUser = await User.create({ name, email, password });
+    res.json(newUser);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
+```
+
+**Now:**
+- Hovering over `name`, `email`, or `password` shows `string` type.
+- TypeScript will complain if a property is missing or has the wrong type.
+
+***
+
+## **6. Benefits**
+- **Type Safety** — catches invalid fields at compile time
+- **Better IntelliSense** — auto-complete for `req.body` properties
+- **Code Clarity** — quick understanding of required request fields
+- **Scalability** — easier to manage request types for each controller
+
+***
+
+## **7. Next Steps**
+- Apply similar typing for other request types (`LoginRequest`, `UpdateProfileRequest`, etc.)
+- Combine with **validation middleware** (Joi, Zod, or express-validator) to validate values at runtime, not just compile-time.
+
+***
+
+✅ **Takeaway:**  
+Extending `express.Request` with an interface for the route-specific body is a clean way to enforce type safety in your controllers.
+
+--------------------
+
+
+***
+
+# **User Input Validation – Preparing for Yup Integration (Express + TypeScript)**
+
+## **1. The Problem**
+- Currently, even if:
+  - **`password` is missing**
+  - **Invalid email** format
+- The API can still create a user in MongoDB.
+- This is because we have **no validation logic** on the incoming request data beyond Mongoose “required” schema rules (which don’t validate format).
+
+***
+
+## **2. Basic Manual Validation (Middleware Example)**
+- In Express, a middleware function can be added **between the route path and the controller**.
+- Middleware signature:
+```ts
+(req, res, next) => { ... }
+```
+- We can destructure required fields from `req.body`:
+```ts
+const { name, email, password } = req.body;
+```
+- Example manual validation for **`name`**:
+```ts
+if (!name.trim()) {
+  return res.json({ error: "Name is missing" });
+}
+
+if (name.length < 3) {
+  return res.json({ error: "Invalid name" });
+}
+
+next();
+```
+- Here:
+  - `.trim()` removes leading/trailing spaces → catches cases like `"   "`.
+  - `return` stops execution if the validation fails.
+  - Without manual checks for each field, invalid data still gets stored.
+
+***
+
+## **3. Why Not Write All Validations Manually?**
+- Validating values like **email format** or **password complexity** requires **regex patterns** and custom code.
+- Doing this manually is time-consuming, repetitive, and prone to inconsistent error-handling.
+- As the number of fields & complexity grows → manual approach becomes messy.
+
+***
+
+## **4. Introducing `Yup` for Schema Validation**
+- [`Yup`](https://github.com/jquense/yup) is a **schema builder for value parsing and validation**.
+- Benefits:
+  1. ✏️ **Declarative Rules** – Define how each field should look in one place.
+  2. ⚡ **Reusable** – Define once, use in multiple routes.
+  3. 🛠 **Rich Validators** – Email, min/max length, regex patterns, etc.
+  4. 🔄 **Shared** – Can be used **in both backend and frontend**.
+
+***
+
+## **5. Yup Example (from Docs)**
+```ts
+import * as yup from 'yup';
+
+const userSchema = yup.object({
+  name: yup.string().min(3).required(),
+  email: yup.string().email("Invalid email format").required(),
+  password: yup.string().min(6).required()
+});
+
+// Validate incoming data
+try {
+  await userSchema.validate(req.body);
+  next();
+} catch (err) {
+  res.status(400).json({ error: err.errors[0] });
+}
+```
+
+***
+
+## **6. Why Yup is the Chosen Validator**
+- Many schema validators exist (e.g., Joi, Zod, class-validator), but:
+  - **Yup** works **seamlessly** with:
+    - **Backend** (Express/Node)
+    - **Frontend** (React/React Native)
+  - **Formik** (popular form state library) has built‑in support for Yup:
+    ```jsx
+    validationSchema={userSchema}
+    ```
+  - This means **one validation schema** can be shared across the **entire stack**.
+
+***
+
+## **7. Next Steps**
+- In the next step, the manual `name` checks will be **replaced** with a Yup validation middleware.
+- This middleware will:
+  - Define schema (`name`, `email`, `password`) rules in one place.
+  - Automatically send a response with custom error messages if validation fails.
+  - Let the request body pass through to the controller only if it’s valid.
+
+***
+
+✅ **Key Takeaway:**  
+Instead of duplicating input validation logic for every field and route:
+- Use **middleware** + **Yup** schema validation.
+- This ensures concise, reusable, and consistent validation in **both backend and frontend** apps.
+
+***
+
+-----------------
+
+***
+
+# **Validation Schema with Yup for User Registration**
+
+## **1. Why Yup?**
+- Required because manual checks for `name`, `email`, and `password` are repetitive and error-prone.
+- Yup lets us:
+  - Build **declarative schemas**
+  - Chain constraints (required, min/max length, regex, etc.)
+  - Provide **custom error messages**
+  - Reuse validations across backend and frontend (Formik supports Yup out-of-the-box 🚀)
+
+***
+
+## **2. Setup**
+Install Yup in the project:
+```bash
+npm i yup
+```
+
+Create a **utility file** to store validation schemas:
+```bash
+src/utils/validationSchema.ts
+```
+
+***
+
+## **3. Create User Validation Schema**
+```ts
+// src/utils/validationSchema.ts
+import * as yup from 'yup';
+
+// Strong password regex pattern
+// At least one letter, one number, and one special character
+const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]+$/;
+
+export const createUserSchema = yup.object({
+  // Name validation
+  name: yup
+    .string()
+    .trim()
+    .required("Name is missing")
+    .min(3, "Name is too short")
+    .max(50, "Name is too long"),
+
+  // Email validation
+  email: yup
+    .string()
+    .trim()
+    .email("Invalid email ID")
+    .required("Email is missing"),
+
+  // Password validation
+  password: yup
+    .string()
+    .trim()
+    .required("Password is missing")
+    .min(8, "Password is too short")
+    .matches(strongPasswordRegex, "Password is too simple")
+});
+```
+
+***
+
+## **4. Password Policy (with Regex)**
+- Must include:
+  - At least **one alphabetic character** (`A-Z` or `a-z`)
+  - At least **one number** (`0-9`)
+  - At least **one special character** (`@$!%*#?&`)
+- Example **valid password**:  
+  `Ninja#123`
+
+- Example **invalid password**:  
+  - `"12345678"` ❌ (only digits)  
+  - `"password"` ❌ (only alphabets)  
+
+***
+
+## **5. How to Use the Schema**
+In your route, instead of manually checking fields:
+
+```ts
+import { createUserSchema } from '#/utils/validationSchema';
+
+router.post('/create', async (req, res) => {
+  try {
+    // Validate against schema
+    await createUserSchema.validate(req.body, { abortEarly: false });
+
+    // If valid → create user
+    const user = await User.create(req.body);
+    res.json(user);
+
+  } catch (error: any) {
+    // Collect Yup error messages (can be multiple)
+    return res.status(400).json({ errors: error.errors });
+  }
+});
+```
+
+**Note:**  
+- `{ abortEarly: false }` ensures Yup reports **all validation errors** instead of stopping at the first one.  
+- `error.errors` is an array with custom error messages.
+
+***
+
+## **6. Example Failures**
+
+### Request:
+```json
+{
+  "name": "Jo",
+  "email": "not-an-email",
+  "password": "123456"
+}
+```
+
+### Response (Yup Errors):
+```json
+{
+  "errors": [
+    "Name is too short",
+    "Invalid email ID",
+    "Password is too simple"
+  ]
+}
+```
+
+***
+
+## **7. Benefits**
+- Centralized reusable validation (all in `validationSchema.ts`)
+- Clean, readable rules
+- Rich error messages for clients / Postman testing
+- Shared across **Express backend** and **React Native frontend (via Formik)**
+
+***
+
+✅ **At this stage:**  
+We now have a **strong schema-based validation system** for `name`, `email`, and `password` using Yup.  
+
+***
+
+👉 Next step in your flow (as hinted):  
+Integrate this schema as an **Express middleware** so validation happens **before reaching the controller**.
+
+***
+
+----------------------
+
+***
+
+# **Reusable Yup Validation Middleware (Express + TypeScript)**
+
+## **1. The Problem**
+- Previously: Each controller (e.g. `/auth/create`) had to call:
+  ```ts
+  await createUserSchema.validate(req.body)
+  ```
+- This caused duplication across **every route** that needed validation.
+- We need a **centralized middleware** to validate request bodies automatically.
+
+***
+
+## **2. What We Want**
+- Use route like this:
+  ```ts
+  router.post('/create', validate(createUserSchema), createUserController);
+  ```
+- ✅ `validate()` is a generic middleware factory that:
+  - Runs the schema rules
+  - Returns **errors immediately** with proper JSON
+  - Calls `next()` if validation passed
+
+***
+
+## **3. Middleware Implementation**
+
+### File: `src/middleware/validator.ts`
+```ts
+import { RequestHandler } from 'express';
+import * as yup from 'yup';
+
+export const validate = (schema: yup.ObjectSchema<any>): RequestHandler => {
+  return async (req, res, next) => {
+    // Ensure body exists
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: "Empty body is not accepted" });
+    }
+
+    try {
+      // Validate request body against schema
+      await schema.validate(req.body, { abortEarly: false });
+
+      // ✅ If valid → go to next middleware/controller
+      return next();
+
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        // Collect all validation error messages
+        return res.status(400).json({ errors: err.errors });
+      }
+
+      // Fallback in case of unknown errors
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+};
+```
+
+***
+
+## **4. Using the Middleware**
+
+### In your Auth Router:
+```ts
+// src/routers/auth.ts
+import { Router } from 'express';
+import User from '#/models/user';
+import { validate } from '#/middleware/validator';
+import { createUserSchema } from '#/utils/validationSchema';
+
+const router = Router();
+
+router.post('/create', validate(createUserSchema), async (req, res) => {
+  try {
+    const newUser = await User.create(req.body);
+    res.status(201).json(newUser); // 201 = Created
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
+```
+
+***
+
+## **5. Test Cases (Postman / Thunder Client)**
+
+### Request with missing password:
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@email.com"
+}
+```
+
+### Response:
+```json
+{
+  "errors": ["Password is missing"]
+}
+```
+➡ **Status Code: `400 Bad Request`**
+
+***
+
+### Request with invalid email OR too-short name:
+```json
+{
+  "name": "Jo",
+  "email": "not-an-email",
+  "password": "123"
+}
+```
+
+### Response:
+```json
+{
+  "errors": [
+    "Name is too short",
+    "Invalid email ID",
+    "Password is too short",
+    "Password is too simple"
+  ]
+}
+```
+
+➡ **Status Code: `400 Bad Request`**
+
+***
+
+### Request with valid details:
+```json
+{
+  "name": "John Smith",
+  "email": "john@email.com",
+  "password": "Pass@123"
+}
+```
+
+### Response:
+```json
+{
+  "_id": "66c9fe67...",
+  "name": "John Smith",
+  "email": "john@email.com",
+  "verified": false,
+  "createdAt": "...",
+  "updatedAt": "...",
+  "__v": 0
+}
+```
+
+➡ **Status Code: `201 Created`**
+
+***
+
+## **6. Key Improvements**
+- ✅ Centralized validation logic (no duplication per route)  
+- ✅ Flexible: different schemas = different routes  
+- ✅ Better error reporting (can return multiple errors at once with `abortEarly: false`)  
+- ✅ Correct HTTP status codes (400 = validation error, 201 = created, 500 = unexpected error)  
+
+***
+
+## **7. Next Step**
+➡ Currently, validation errors return **200 OK**, which is misleading.  
+→ Next step is to standardize HTTP responses:
+- `400 Bad Request` for validation failures  
+- `401 Unauthorized` for login/auth errors  
+- `404 Not Found` for missing resources  
+- `500 Internal Server Error` for server crashes  
+
+***
+
+✅ With this middleware in place, **every route can have its own schema** while validation stays consistent across the API.
+
+***
+
+------------
+
+Standardize your error handling middleware so that:
+
+Yup validation errors → 422
+
+Auth errors → 401/403
+
+Not found → 404
+
+Success create → 201
+
+Normal success → 200
+
+This keeps your entire API predictable and clean for frontend developers.
+
+------------
+
+***
+
+# **Email Verification Setup (Mailtrap for Development)**
+
+## **1. Why Do We Need Email Verification?**
+- Validating email **format** (via Yup schema) ≠ validating that the **email actually exists**.  
+- To confirm ownership → must send a token/OTP/link to the provided email.  
+- This prevents fake accounts and ensures **real users** only.  
+
+***
+
+## **2. The Challenge**
+- Sending emails **directly from your Node.js/Express app** is not reliable:  
+  - Mail providers (Gmail, Outlook, Yahoo, etc.) will treat it as spam.  
+  - Spammers could misuse open relay servers if raw SMTP was allowed universally.  
+- Therefore → need a **trusted third-party email service provider**.  
+
+***
+
+## **3. The Solution**
+- Use verified **transactional email services** (SMTP/API based). Examples:  
+  - Mailtrap (best for **development/testing**)  
+  - SendGrid  
+  - AWS SES  
+  - Postmark / Mailgun  
+
+***
+
+## **4. Why Mailtrap (for Dev)?**
+- Specially built for **testing emails in dev/staging** environments.  
+- Emails sent go into a **sandbox/inbox** you control.  
+- Simulates real delivery without spamming real email addresses.  
+- Useful to confirm:  
+  - Email is being sent  
+  - Template formatting looks good  
+  - Tokens/OTPs contain correct data  
+
+***
+
+## **5. Setup Instructions**
+1. **Sign up** at [Mailtrap](https://mailtrap.io/)  
+   - Use "Sign up with Google" for quick onboarding.  
+   - Your Google account is already verified, so fewer steps.  
+
+2. **Verify Mailtrap Account**  
+   - Mailtrap itself will send you a validation email (same process you’re trying to build).  
+
+3. **Create an Inbox**  
+   - Navigate to **Email Testing → Inboxes** in Mailtrap dashboard.  
+   - Click **New Inbox** → give it a name (e.g., `Dev Emails`).  
+   - You’ll see connection settings (SMTP host, port, username, password).  
+
+4. **Next Step (in app)**  
+   - Configure your Express app (via `nodemailer` or similar) to use **Mailtrap SMTP credentials**.  
+   - This way, whenever you send a signup/verification email → Mailtrap inbox will capture it.  
+
+***
+
+## **6. Summary**
+- Direct email sending is blocked by all major providers due to spam risks.  
+- Use **Mailtrap for dev** → to **test email flow** safely.  
+- Later in production → switch to a real service (like SendGrid/SES).  
+- At this stage, we're preparing to:
+  - **Create inbox in Mailtrap**  
+  - **Configure our backend with Mailtrap SMTP**  
+  - **Send verification link/OTP emails to test inbox**  
+
+***
+
+✅ **Next Video Goal:** Configure **Nodemailer** (or another SMTP client) in `services/email.ts` using the Mailtrap credentials, and test sending verification email from backend.  
+
+***
+
+
+--------------------
+
+***
+
+# **Sending Verification Emails (Mailtrap + Nodemailer)**
+
+## **1. Why Mailtrap + Nodemailer?**
+- **Nodemailer** = Node.js package for sending emails via SMTP.  
+- **Mailtrap** = Sandbox service for testing emails during development.  
+- Benefits:  
+  - Safe: emails don’t go to real inboxes (avoids spamming).  
+  - Fully debuggable: you can see subject, body, recipients, tokens.  
+  - Prepares you for production switch (SendGrid, Mailgun, SES, etc.).
+
+***
+
+## **2. Setup Guide**
+
+### **Step 1: Install Nodemailer**
+```bash
+npm install nodemailer
+npm install -D @types/nodemailer   # for TS projects
+```
+
+***
+
+### **Step 2: Configure .env File**
+From Mailtrap inbox → Settings → Integrations → copy credentials:
+
+```env
+MAILTRAP_USER=<your-mailtrap-username>
+MAILTRAP_PASS=<your-mailtrap-password>
+```
+
+***
+
+### **Step 3: Export Variables**
+File: `src/config/variables.ts`
+
+```ts
+export const {
+  MAILTRAP_USER,
+  MAILTRAP_PASS,
+  MONGODB_URI
+} = process.env;
+```
+
+***
+
+### **Step 4: Setup Transporter**
+Inside your controller (temporary test):
+
+```ts
+import nodemailer from 'nodemailer';
+import { MAILTRAP_USER, MAILTRAP_PASS } from '#/config/variables';
+
+const transporter = nodemailer.createTransport({
+  host: "sandbox.smtp.mailtrap.io",
+  port: 2525,
+  auth: {
+    user: MAILTRAP_USER,
+    pass: MAILTRAP_PASS
+  }
+});
+```
+
+***
+
+## **3. Sending the Verification Email**
+
+Inside your **user controller → createUser**:
+
+```ts
+import { RequestHandler } from 'express';
+import User from '#/models/user';
+import { transporter } from '#/services/email'; // recommend extracting transporter setup
+
+export const createUser: RequestHandler = async (req, res) => {
+  try {
+    const user = await User.create(req.body);
+
+    // 🔑 Send verification email
+    await transporter.sendMail({
+      from: "auth@myapp.com",
+      to: user.email,
+      subject: "Verify your email",
+      html: `<h1>12345</h1>` // Will later be a token or OTP
+    });
+
+    return res.status(201).json(user);
+
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+```
+
+***
+
+## **4. Test with Postman**
+- Create a new user with a unique email:
+```json
+{
+  "name": "John",
+  "email": "johnagain@gmail.com",
+  "password": "Pass@123"
+}
+```
+
+- `201 Created` response should return user object.  
+- On Mailtrap dashboard → **Inbox → Message** → see the email (with subject + dummy OTP HTML).
+
+***
+
+## **5. What We Achieved**
+✅ Successfully integrated **Nodemailer with Mailtrap**  
+✅ New users trigger a **verification email**  
+✅ Email is viewable in Mailtrap test inbox  
+
+***
+
+## **6. What’s Next?**
+- Right now: email contains a **dummy OTP (`12345`)**.  
+- Next step:  
+  - Generate **unique tokens or OTPs** dynamically.  
+  - Store them in the database (linked to the user).  
+  - Verify them when a user clicks the link or enters the OTP.  
+  - Update `user.verified = true` after confirmation.
+
+***
+
+
+-------------------
+
+***
+
+# **Email Verification Token Model (Mongoose + TypeScript)**
+
+## **1. Why Do We Need This?**
+- To validate email ownership, we must:
+  1. Generate a **verification token (or OTP)** when a user signs up.
+  2. Send that token via email.
+  3. Store the token in the database temporarily.
+  4. When the user clicks the link or submits the token, verify it against DB.  
+- Tokens should **expire after a short period** (e.g., 1 hour) for security.  
+
+***
+
+## **2. Creating the Token Model**
+### File: `src/models/emailVerificationToken.ts`
+```ts
+import { Schema, model, Model, Document } from "mongoose";
+
+// Step 1: Define TypeScript interface
+export interface EmailVerificationTokenDocument extends Document {
+  owner: Schema.Types.ObjectId;  // user who this token belongs to
+  token: string;                 // actual token string
+  createdAt: Date;               // created timestamp (auto-remove after TTL)
+}
+
+// Step 2: Create Schema
+const emailVerificationTokenSchema = new Schema<EmailVerificationTokenDocument>({
+  owner: {
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: "user",   // must match the User model name exactly
+  },
+  token: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 3600, // 3600s = 1 hour TTL
+  }
+});
+
+// Step 3: Export Model
+const EmailVerificationToken: Model<EmailVerificationTokenDocument> =
+  model<EmailVerificationTokenDocument>(
+    "emailverificationtoken",
+    emailVerificationTokenSchema
+  );
+
+export default EmailVerificationToken;
+```
+
+***
+
+## **3. Key Fields**
+- **owner** → `ObjectId` of the user this token belongs to.  
+  - `ref: "user"` links this token to the `User` collection.  
+- **token** → Unique verification token (string).  
+  - Later you can hash this before saving for extra security.  
+- **createdAt** → Stores creation timestamp.  
+  - Uses `expires: 3600` → MongoDB TTL index auto-deletes documents after 1 hour.
+
+***
+
+## **4. TTL (Time-To-Live) Behavior in MongoDB**
+- TTL indexes are checked approximately **once per minute**:
+  - If `expires: 60`, the document might live **up to 119 seconds**.  
+  - If `expires: 3600` (1 hour), it might be 1h + up to 1min.  
+- Always keep this in mind if testing small values — deletion isn’t *instant*, it’s polled every ~60s.  
+
+***
+
+## **5. Example Usage (During Signup)**
+Later in the controller:
+```ts
+import crypto from "crypto";
+import EmailVerificationToken from "#/models/emailVerificationToken";
+
+// Inside signup logic:
+const token = crypto.randomBytes(32).toString("hex");
+
+await EmailVerificationToken.create({
+  owner: user._id,
+  token,
+});
+
+// Send token to user via email (Mailtrap for dev)
+await transporter.sendMail({
+  from: "auth@myapp.com",
+  to: user.email,
+  subject: "Verify your account",
+  html: `<h1>Your OTP: ${token}</h1>`
+});
+```
+
+***
+
+## **6. Summary**
+- `emailVerificationToken` model stores:
+  - Who the token belongs to (`owner`)
+  - The **token** string
+  - A `createdAt` timestamp with MongoDB TTL for expiry
+- Expires automatically after **1 hour (3600s)**.  
+- Will be used in upcoming steps to:
+  1. Generate token on signup
+  2. Email token to the user
+  3. Validate token on verification endpoint
+  4. Delete expired/used tokens
+
+***
+
+✅ **Next Step**: Integrate this model into the **user signup flow** → generate & save a fresh token before sending the email.
+
+***
+
+-----------------------------
+
+
+***
+
+# **Sending Verification Emails (Mailtrap + Nodemailer)**
+
+## **1. Why Mailtrap + Nodemailer?**
+- **Nodemailer** = Node.js package for sending emails via SMTP.  
+- **Mailtrap** = Sandbox service for testing emails during development.  
+- Benefits:  
+  - Safe: emails don’t go to real inboxes (avoids spamming).  
+  - Fully debuggable: you can see subject, body, recipients, tokens.  
+  - Prepares you for production switch (SendGrid, Mailgun, SES, etc.).
+
+***
+
+## **2. Setup Guide**
+
+### **Step 1: Install Nodemailer**
+```bash
+npm install nodemailer
+npm install -D @types/nodemailer   # for TS projects
+```
+
+***
+
+### **Step 2: Configure .env File**
+From Mailtrap inbox → Settings → Integrations → copy credentials:
+
+```env
+MAILTRAP_USER=<your-mailtrap-username>
+MAILTRAP_PASS=<your-mailtrap-password>
+```
+
+***
+
+### **Step 3: Export Variables**
+File: `src/config/variables.ts`
+
+```ts
+export const {
+  MAILTRAP_USER,
+  MAILTRAP_PASS,
+  MONGODB_URI
+} = process.env;
+```
+
+***
+
+### **Step 4: Setup Transporter**
+Inside your controller (temporary test):
+
+```ts
+import nodemailer from 'nodemailer';
+import { MAILTRAP_USER, MAILTRAP_PASS } from '#/config/variables';
+
+const transporter = nodemailer.createTransport({
+  host: "sandbox.smtp.mailtrap.io",
+  port: 2525,
+  auth: {
+    user: MAILTRAP_USER,
+    pass: MAILTRAP_PASS
+  }
+});
+```
+
+***
+
+## **3. Sending the Verification Email**
+
+Inside your **user controller → createUser**:
+
+```ts
+import { RequestHandler } from 'express';
+import User from '#/models/user';
+import { transporter } from '#/services/email'; // recommend extracting transporter setup
+
+export const createUser: RequestHandler = async (req, res) => {
+  try {
+    const user = await User.create(req.body);
+
+    // 🔑 Send verification email
+    await transporter.sendMail({
+      from: "auth@myapp.com",
+      to: user.email,
+      subject: "Verify your email",
+      html: `<h1>12345</h1>` // Will later be a token or OTP
+    });
+
+    return res.status(201).json(user);
+
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+```
+
+***
+
+## **4. Test with Postman**
+- Create a new user with a unique email:
+```json
+{
+  "name": "John",
+  "email": "johnagain@gmail.com",
+  "password": "Pass@123"
+}
+```
+
+- `201 Created` response should return user object.  
+- On Mailtrap dashboard → **Inbox → Message** → see the email (with subject + dummy OTP HTML).
+
+***
+
+## **5. What We Achieved**
+✅ Successfully integrated **Nodemailer with Mailtrap**  
+✅ New users trigger a **verification email**  
+✅ Email is viewable in Mailtrap test inbox  
+
+***
+
+## **6. What’s Next?**
+- Right now: email contains a **dummy OTP (`12345`)**.  
+- Next step:  
+  - Generate **unique tokens or OTPs** dynamically.  
+  - Store them in the database (linked to the user).  
+  - Verify them when a user clicks the link or enters the OTP.  
+  - Update `user.verified = true` after confirmation.
+
+***
+
+-----------------
+
+
+***
+
+# **1. Install bcrypt and its Types**
+```bash
+npm install bcrypt
+npm install -D @types/bcrypt
+```
+
+***
+
+# **2. Hashing the Token in Your EmailVerificationToken Schema**
+
+**File:** `models/emailVerificationToken.ts`
+
+```ts
+import { Schema, model, Document } from "mongoose";
+import bcrypt, { hash, compare } from "bcrypt";
+
+// Interface for methods
+interface EmailVerificationTokenMethods {
+  compareToken(token: string): Promise<boolean>;
+}
+
+// Document interface includes our methods
+export interface EmailVerificationTokenDocument
+  extends Document,
+    EmailVerificationTokenMethods {
+  owner: Schema.Types.ObjectId;
+  token: string;
+  createdAt: Date;
+}
+
+// The schema
+const emailVerificationTokenSchema = new Schema<
+  EmailVerificationTokenDocument,
+  {},
+  EmailVerificationTokenMethods
+>({
+  owner: {
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: "user",
+  },
+  token: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 3600, // 1 hour TTL
+  },
+});
+
+// Pre-save hook for hashing token
+emailVerificationTokenSchema.pre("save", async function (next) {
+  // Only hash if the token has been modified/new
+  if (!this.isModified("token")) return next();
+  this.token = await hash(this.token, 10);
+  next();
+});
+
+// Instance method for comparing tokens
+emailVerificationTokenSchema.methods.compareToken = async function (
+  candidate: string
+): Promise<boolean> {
+  // this.token is already hashed in DB
+  return compare(candidate, this.token);
+};
+
+// Export the model
+const EmailVerificationToken = model<EmailVerificationTokenDocument>(
+  "emailverificationtoken",
+  emailVerificationTokenSchema
+);
+
+export default EmailVerificationToken;
+```
+
+***
+
+# **3. Usage in Your Controller**
+
+### Generating and Saving a Plaintext Token (OTP)
+
+**File:** `controllers/user.ts` (or equivalent)
+
+```ts
+import EmailVerificationToken from "#/models/emailVerificationToken";
+import { generateToken } from "#/utils/helper"; // Your OTP generator
+
+// ... inside your signup endpoint
+
+const otp = generateToken(); // e.g., '2144'
+
+// Save OTP (it will be auto-hashed by pre('save'))
+const verificationRecord = new EmailVerificationToken({
+  owner: user._id,
+  token: otp, // Will be hashed by hook!
+});
+await verificationRecord.save();
+
+// Send plaintext OTP to email
+await transporter.sendMail({
+  from: "auth@myapp.com",
+  to: user.email,
+  subject: "Verify your email",
+  html: `<h1>Your verification token is ${otp}</h1>`
+});
+```
+
+***
+
+# **4. Verifying the Token**
+
+**File:** `controllers/verify.ts` (or similar)
+
+```ts
+// ...in your token verification handler
+
+const { userId, token } = req.body;
+
+// Find token record
+const verificationRecord = await EmailVerificationToken.findOne({ owner: userId });
+if (!verificationRecord)
+  return res.status(400).json({ error: "Token expired or invalid." });
+
+// Compare submitted OTP with hashed DB value
+const isMatch = await verificationRecord.compareToken(token); // uses our instance method
+if (!isMatch)
+  return res.status(400).json({ error: "Invalid token." });
+
+// Mark user as verified, etc.
+
+// Remove token record to prevent reuse
+await verificationRecord.deleteOne();
+
+return res.status(200).json({ message: "Email verified!" });
+```
+
+***
+
+# **5. What About the User Password?**
+
+Repeat the same **pattern** in your `User` schema:
+
+**models/user.ts**
+
+```ts
+import bcrypt from "bcrypt";
+
+// ...userSchema definition
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+userSchema.methods.comparePassword = async function (
+  candidate: string
+): Promise<boolean> {
+  return bcrypt.compare(candidate, this.password);
+};
+```
+
+***
+
+# **6. Why This Is Best Practice**
+- **No sensitive info stored in plaintext.**
+- Hashing is automatically enforced at the schema/model layer (never forget!).
+- Comparing uses the same algorithm, comparing the hash against user input at runtime.
+- Works for both passwords and single-use tokens.
+
+***
+
+## **Summary Table**
+
+| Field      | Stored as   | Hashed in...       | Verified with method         |
+|------------|-------------|--------------------|------------------------------|
+| Password   | bcrypt hash | User pre('save')   | `user.comparePassword(...)`  |
+| OTP/Token  | bcrypt hash | EmailToken pre('save') | `emailToken.compareToken(...)` |
+
+***
+
+## **Usage Recap**
+
+- **Send:** Save `otp` (will hash); email the **plain** `otp`.
+- **Verify:** User submits **plain** `otp`; call `compareToken(plainOtp)`; method checks match with **hashed** DB value.
+
+***
+
+---------------------
+
+Make sure the post request is POST and not GET  
+
+Here are the step-by-step instructions and code snippets to implement the "verify email" route and controller method for validating an OTP (One-Time Password) in a MERN stack app, as explained in your lecture:
+
+***
+
+### Implementing Email Verification Endpoint
+
+This will allow users to submit an OTP and their `userId` to verify their email address.
+
+***
+
+### 1. Create the Verify Email Route
+
+**Code Snippet:** (`routes/auth.ts`)
+```typescript
+import { Router } from 'express';
+import { verifyEmail } from '../controllers/user';
+
+const router = Router();
+
+router.post('/verify-email', verifyEmail);
+
+export default router;
+```
+- **Explanation:**  
+  - Adds a POST endpoint `/verify-email` which calls the `verifyEmail` controller method.
+  - Remove unrelated code or duplicate only what’s necessary for this route.
+
+***
+
+### 2. Update or Create the Request Type
+
+**Code Snippet:** (`types/user.ts`)
+```typescript
+export interface VerifyEmailRequest extends Request {
+  body: {
+    userId: string;
+    token: string;
+  };
+}
+```
+- **Explanation:**  
+  - Defines the TypeScript type for the verify email request, expecting both `userId` and `token` in the body.
+
+***
+
+### 3. Implement the Controller Logic
+
+**Code Snippet:** (`controllers/user.ts`)
+```typescript
+import { Request, Response } from 'express';
+import EmailVerificationToken from '../models/emailVerificationToken';
+import User from '../models/user';
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  const { userId, token } = req.body;
+
+  // Find email verification token by owner (user ID)
+  const verificationToken = await EmailVerificationToken.findOne({ owner: userId });
+  if (!verificationToken) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+
+  // Compare provided token with stored token
+  const matched = await verificationToken.compareToken(token);
+  if (!matched) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+
+  // Set user as verified
+  await User.findByIdAndUpdate(userId, { verified: true });
+
+  // Remove the used verification token
+  await EmailVerificationToken.findByIdAndDelete(verificationToken._id);
+
+  // Respond with success
+  res.json({ message: 'Your email is verified' });
+};
+```
+- **Explanation:**  
+  - Looks up the verification token for the user.
+  - Compares the submitted OTP (`token`) to what’s stored, using a method like `compareToken`.
+  - Verifies the user on match, deletes the used verification token from the database.
+  - Sends success response back to the client.
+
+***
+
+### 4. Make a Test Request
+
+With Postman or any API tool:
+- **POST** to `/verify-email`
+- **Body:** (raw, JSON)
+  ```json
+  {
+    "userId": "PUT_USER_ID_HERE",
+    "token": "PUT_OTP_HERE"
+  }
+  ```
+- **Expected Response:**
+  ```json
+  { "message": "Your email is verified" }
+  ```
+- **Explanation:**  
+  - Replace `"userId"` and `"token"` with actual values as received by the user.
+  - Ensure the user’s `verified` flag in the database is now `true`.
+  - The used token should be deleted after verification.
+
+***
+
+### 5. Summary of Logic
+
+- Receives `userId` and `token` in request body.
+- Finds verification token for user.
+- If not found or no match, responds with error.
+- If match:  
+  - Marks user as verified (`verified: true`)
+  - Deletes verification token (for security, prevents token reuse)
+  - Sends confirmation message.
+
+***
+
+-----------------
+
+To add robust validation for your `/verify-email` route, the goal is to ensure that both the `token` and `userId` are present and valid before your controller logic runs. If validation fails, a clear error (like "invalid user ID" or "invalid token") is returned instead of a server or MongoDB error.
+
+Here are the steps and a sample code snippet, matching what was shown in your lecture:
+
+***
+
+### Step-by-Step: Add Email Verification Validation Schema
+
+#### 1. **Create the Validation Schema**
+
+Create a file, e.g., `validations/emailVerification.ts`.
+
+```typescript
+import * as yup from 'yup';
+import mongoose from 'mongoose';
+
+export const emailVerificationBody = yup.object().shape({
+  token: yup
+    .string()
+    .trim()
+    .required('Invalid token'),
+
+  userId: yup
+    .string()
+    .transform(function (value) {
+      // Validate: must be string and valid ObjectId
+      if (typeof value === 'string' && mongoose.Types.ObjectId.isValid(value)) {
+        return value;
+      }
+      return '';
+    })
+    .required('Invalid user ID'),
+});
+```
+**Explanation:**  
+- Checks that `token` is a string and required.
+- `userId` must be a string *and* a valid MongoDB ObjectId, or it turns into an empty string to trigger a validation error.
+
+***
+
+#### 2. **Plug the Schema into the Route**
+
+In your router file (e.g., `routes/auth.ts`), use a validation middleware (can be custom or from a package) to validate request bodies with your new schema:
+
+```typescript
+import { Router } from 'express';
+import { verifyEmail } from '../controllers/user';
+import { emailVerificationBody } from '../validations/emailVerification';
+import validate from '../middlewares/validate'; // Your custom validate middleware
+
+const router = Router();
+
+router.post(
+  '/verify-email',
+  validate(emailVerificationBody), // This runs validation before controller
+  verifyEmail
+);
+
+export default router;
+```
+
+*If you use your own validation middleware, it likely looks like:*
+```typescript
+// middlewares/validate.ts
+export default (schema) => async (req, res, next) => {
+  try {
+    await schema.validate(req.body);
+    next();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+```
+**Explanation:**  
+- The middleware checks the request body against your schema, responds with a message **before** reaching the actual controller if validation fails.
+
+***
+
+#### 3. **What This Achieves**
+
+- If `userId` is not a valid ObjectId, the error will be: `"Invalid user ID"`.
+- If `token` is missing/empty, the error will be: `"Invalid token"`.
+- Prevents nasty server/database errors from malformed input–users get clear, early feedback.
+
+***
+
+### How it works in Postman or Frontend
+
+- If you send a request with a malformed or missing `userId`, you get `{ "error": "Invalid user ID" }`.
+- If you send a request with a missing/empty `token`, you get `{ "error": "Invalid token" }`.
+- If both are valid, the request proceeds to the controller for actual OTP verification.
+
+***
+
+---------------------------------
+
