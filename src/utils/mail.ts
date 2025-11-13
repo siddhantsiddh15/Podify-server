@@ -37,3 +37,88 @@ export async function sendVerificationMail(otp: string, newUser: Profile){
         ]
     })
 }
+export async function sentResetPasswordMail(link: string, email: string){
+    const message = `We received a request to reset your password.`
+
+    await transporter.sendMail({
+        from: "auth@myapp.com",
+        to: email,
+        subject: "Reset Password Link",
+        // html: `
+        //     <h2>Forget Password</h2>
+        //     <p>${message}</p>
+        //     <a href="${link}" style="padding:10px 20px;background:#111;color:#fff;text-decoration:none;">
+        //         Reset Password
+        //     </a>
+        // `,
+        html:generateTemplate({
+            title: "Reset Password",
+            message: message,
+            logo: "cid:logo",
+            banner: "cid:welcome",
+            link: link,
+            btnTitle: 'Click to Reset Password'
+        }),
+        attachments: [
+        {
+            filename: "forget_password.png",
+            path: path.join(__dirname, "../mail/forget_password.png"),
+            cid: "forget_password",
+        },
+        {
+            filename: "logo.png",
+            path: path.join(__dirname, "../mail/logo.png"),
+            cid: "logo"
+        },
+        {
+            filename: "welcome.png",
+            path: path.join(__dirname, "../mail/welcome.png"),
+            cid: "welcome"
+        }
+        ],
+    })
+}
+export async function sentResetPasswordSuccessMail({
+            name ,email
+        }: {name : string, email : string}){
+    const message = `Hi ${name}! Password has been reset successfully for the email ${email}`
+
+    await transporter.sendMail({
+        from: "auth@myapp.com",
+        to: email,
+        subject: "Password Changed!",
+        // html: `
+        //     <h2>Forget Password</h2>
+        //     <p>${message}</p>
+        //     <a href="${link}" style="padding:10px 20px;background:#111;color:#fff;text-decoration:none;">
+        //         Reset Password
+        //     </a>
+        // `,
+        html:generateTemplate({
+            title: "Password Updated",
+            message: message,
+            logo: "cid:logo",
+            banner: "cid:welcome",
+            link: '#',
+            btnTitle: 'Open Podify!'
+        }),
+        attachments: [
+        {
+            filename: "forget_password.png",
+            path: path.join(__dirname, "../mail/forget_password.png"),
+            cid: "forget_password",
+        },
+        {
+            filename: "logo.png",
+            path: path.join(__dirname, "../mail/logo.png"),
+            cid: "logo"
+        },
+        {
+            filename: "welcome.png",
+            path: path.join(__dirname, "../mail/welcome.png"),
+            cid: "welcome"
+        }
+        ],
+    })
+}
+

@@ -33,3 +33,11 @@ export interface VerifyEmailRequest extends Request {
     }
 }
 
+export interface UpdatePassword extends Request {
+    body: {
+        email: string;
+        userId: string;
+        password: string;
+    }
+}
+

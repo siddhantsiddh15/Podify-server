@@ -33,12 +33,10 @@ export const verifyEmail = async (req : Request, res : Response) => {
 
 export async function sendReVerificationToken(req: Request, res: Response){
     const {userId} = req.body;
-
     // Validate ObjectId
-    if(!isValidObjectId(userId)){
-        return res.json(403).json({error: 'Invalid request'});
+    if(!userId || !isValidObjectId(userId)){
+        return res.status(403).json({error: 'Invalid request'});
     }
-
     // Fetch user
     const user = await User.findById(userId);
     if(!user){

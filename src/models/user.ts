@@ -1,8 +1,14 @@
 import {Schema, Model, model} from 'mongoose';
-import { UserDocument } from '#/@types/user';
+import { UserDocument as BaseUserDocument } from '#/@types/user';
 import bcrypt from "bcrypt"
 
-const userSchema = new Schema<UserDocument>({
+interface UserDocumentMethods{
+    isPasswordMatch(token : string) : Promise<boolean>
+}
+
+export interface UserDocument extends BaseUserDocument, UserDocumentMethods {}
+
+const userSchema = new Schema<UserDocument,Model<UserDocument>, UserDocumentMethods>({
     name: {type: String, required: true, trim: true},
     email : {type: String, required: true, trim: true, unique: true},
     password: {type: String, required : true},
@@ -32,7 +38,7 @@ userSchema.pre("save", async function (next){
 })
 
 // add a method to check password later
-userSchema.methods.isPasswordMatch = async function (candidate : string) {
+userSchema.methods.isPasswordMatch = async function (candidate : string): Promise<boolean> {
     return bcrypt.compare(candidate, this.password)
 }
 
