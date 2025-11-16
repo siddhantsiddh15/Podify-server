@@ -2812,5 +2812,674 @@ export default model('PasswordResetToken', passwordResetTokenSchema);
 -----------------------------
 
 
+Update Password route 
 
+Perfect 👌 — here’s the **complete TypeScript code snippets** (cleaned, organized, and production-ready) for the **“Update Password”** route, middleware, controller, and mail utility — exactly as described in your Udemy “React Native, Redux & Express - Full Stack React Native” lecture.
+
+---
+
+## 🗂️ Folder Structure (for reference)
+
+```
+src/
+ ├── controllers/
+ │    └── user.controller.ts
+ ├── middlewares/
+ │    └── auth.ts
+ ├── models/
+ │    ├── user.ts
+ │    └── passwordResetToken.ts
+ ├── routes/
+ │    └── auth.ts
+ ├── utils/
+ │    └── mail.ts
+ ├── validation/
+ │    └── schemas.ts
+ ├── config/
+ │    └── env.ts
+```
+
+---
+
+## 🧩 1. **Route** — `routes/auth.ts`
+
+```ts
+import express from "express";
+import { updatePassword, grantValid } from "../controllers/user.controller";
+import { validate } from "../middlewares/validate";
+import { tokenAndIdValidation, updatePasswordSchema } from "../validation/schemas";
+import { isValidPasswordResetToken } from "../middlewares/auth";
+
+const router = express.Router();
+
+// ✅ Validate token route
+router.post(
+  "/verify-password-reset-token",
+  validate(tokenAndIdValidation),
+  isValidPasswordResetToken,
+  grantValid
+);
+
+// ✅ Update password route
+router.post(
+  "/update-password",
+  validate(updatePasswordSchema),
+  isValidPasswordResetToken,
+  updatePassword
+);
+
+export default router;
+```
+
+---
+
+## 🧠 2. **Middleware** — `middlewares/auth.ts`
+
+```ts
+import { Request, Response, NextFunction } from "express";
+import PasswordResetToken from "../models/passwordResetToken";
+
+export const isValidPasswordResetToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { token, userId } = req.body;
+
+  const resetToken = await PasswordResetToken.findOne({ owner: userId });
+  if (!resetToken)
+    return res.status(403).json({ error: "Unauthorized access, invalid token." });
+
+  const matched = await resetToken.compareToken(token);
+  if (!matched)
+    return res.status(403).json({ error: "Unauthorized access, invalid token." });
+
+  next();
+};
+```
+
+---
+
+## 🧑‍💻 3. **Controller** — `controllers/user.controller.ts`
+
+```ts
+import { Request, Response } from "express";
+import User from "../models/user";
+import PasswordResetToken from "../models/passwordResetToken";
+import { sendPasswordResetSuccessEmail } from "../utils/mail";
+
+// ✅ Just returns valid: true if token passes middleware
+export const grantValid = (req: Request, res: Response) => {
+  return res.json({ valid: true });
+};
+
+// ✅ Actual password update logic
+export const updatePassword = async (req: Request, res: Response) => {
+  const { password, userId } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user) return res.status(403).json({ error: "Unauthorized access." });
+
+  const matched = await user.comparePassword(password);
+  if (matched)
+    return res.status(422).json({
+      error: "The new password must be different from the old password.",
+    });
+
+  user.password = password;
+  await user.save();
+
+  await PasswordResetToken.findOneAndDelete({ owner: user._id });
+
+  // Send success email
+  sendPasswordResetSuccessEmail({
+    name: user.name,
+    email: user.email,
+  });
+
+  return res.json({ message: "Password reset successfully." });
+};
+```
+
+---
+
+## ✉️ 4. **Mail Utility** — `utils/mail.ts`
+
+```ts
+import nodemailer from "nodemailer";
+import path from "path";
+import { signInUrl } from "../config/env";
+
+interface PasswordResetSuccessOptions {
+  name: string;
+  email: string;
+}
+
+export const sendPasswordResetSuccessEmail = async ({
+  name,
+  email,
+}: PasswordResetSuccessOptions) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.MAIL_USER,
+    to: email,
+    subject: "Password Reset Successful",
+    html: `
+      <div>
+        <h3>Dear ${name},</h3>
+        <p>We just updated your password successfully. You can now sign in using your new password.</p>
+        <a href="${signInUrl}" 
+          style="padding: 10px 15px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px;">
+          Login
+        </a>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: "forget_password.png",
+        path: path.join(__dirname, "../assets/forget_password.png"),
+        cid: "forget_password",
+      },
+    ],
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+```
+
+---
+
+## 🧾 5. **Validation Schemas** — `validation/schemas.ts`
+
+(using `yup`)
+
+```ts
+import * as yup from "yup";
+
+export const tokenAndIdValidation = yup.object({
+  body: yup.object({
+    token: yup.string().required("Token is missing."),
+    userId: yup.string().required("User ID is missing."),
+  }),
+});
+
+export const updatePasswordSchema = yup.object({
+  body: yup.object({
+    token: yup.string().required(),
+    userId: yup.string().required(),
+    password: yup
+      .string()
+      .min(8, "Password is too short - should be 8 chars minimum.")
+      .matches(/[a-z]/, "Password must contain a lowercase letter.")
+      .matches(/[A-Z]/, "Password must contain an uppercase letter.")
+      .matches(/[0-9]/, "Password must contain a number.")
+      .matches(/[@$!%*?&]/, "Password must contain a special character.")
+      .required("Password is required."),
+  }),
+});
+```
+
+---
+
+## ⚙️ 6. **Config Example** — `config/env.ts`
+
+```ts
+export const signInUrl = process.env.SIGNIN_URL || "https://yourapp.com/signin";
+```
+
+---
+
+✅ **Flow Summary**
+
+1. `/update-password` route first validates schema → middleware checks token validity.
+2. If token valid → controller updates password, deletes reset token, sends success email.
+3. Email includes a “Login” button linking back to your frontend sign-in page.
+
+---
+
+_______
+
+Creating a public route
+
+Exactly 👍 — you’re following that **Udemy "Full Stack React Native + Express"** lecture perfectly.
+Let’s continue from where the instructor left off — the part where you create the **frontend (update password form)** inside your **Node.js app’s `public/` folder**, and serve it statically.
+
+---
+
+## 🪜 Step-by-Step Guide (to match your lecture progress)
+
+### ✅ 1. Create `public` folder
+
+Inside your **project root**, create:
+
+```
+src/public/index.html
+```
+
+Now, add this base HTML:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modify Password</title>
+  </head>
+  <body>
+    <h1>Hello World</h1>
+  </body>
+</html>
+```
+
+---
+
+### ✅ 2. Serve the `public` folder as static files
+
+Go to your main entry file, usually:
+
+```
+src/index.ts
+```
+
+Add this near the other middlewares (after `app.use(express.json())`, etc.):
+
+```ts
+import path from "path";
+import express from "express";
+
+// Serve static files from "public" folder
+app.use(express.static(path.join(__dirname, "public")));
+```
+
+Now restart your server (`npm run dev` or `npx ts-node src/index.ts`).
+
+Then open:
+
+```
+http://localhost:8989/
+```
+
+You should see **Hello World** 🎉
+That confirms your static hosting works.
+
+---
+
+### ✅ 3. Why this is needed
+
+When a user clicks on the reset password link (something like):
+
+```
+http://localhost:8989/reset-password?token=XYZ&userId=123
+```
+
+you’ll serve a static HTML page that can **verify the token** (via API call to `/verify-password-reset-token`)
+and if valid, show the **Update Password Form** — all directly from Node.js, without needing React or a frontend app.
+
+---
+
+### 🧠 4. Next Lecture (Preview)
+
+In the next video, you’ll:
+
+* Replace that “Hello World” with an HTML + JS form.
+* Write a simple frontend script inside that HTML that:
+
+  * Extracts `token` and `userId` from the URL.
+  * Sends them to your backend `/verify-password-reset-token`.
+  * If valid → displays “Set new password” form.
+  * Submits new password to `/update-password`.
+
+---
+
+---------------
+
+Create public routes
+
+---
+
+# ✅ Folder Structure (TypeScript Project)
+
+```
+src/
+ ├─ index.ts
+ ├─ public/
+ │    ├─ reset-password.html
+ │    ├─ style.css
+ │    └─ script.js
+```
+
+---
+
+# ✅ 1. `reset-password.html`
+
+*(This is the same structure your instructor pasted — ready to use)*
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- Loader -->
+    <h1 id="loader">Please wait...</h1>
+
+    <!-- Error + Success Messages -->
+    <div id="error" class="error">Something went wrong</div>
+    <div id="success" class="success">Success!</div>
+
+    <!-- Form Container -->
+    <div class="container" id="form-container">
+        <h2>Reset Password</h2>
+
+        <form id="reset-form">
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input id="password" type="password" placeholder="Enter new password" required />
+            </div>
+
+            <div class="form-group">
+                <label for="confirm">Confirm Password</label>
+                <input id="confirm" type="password" placeholder="Confirm password" required />
+            </div>
+
+            <button type="submit" class="btn">Update Password</button>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+---
+
+# ✅ 2. `style.css`
+
+*(Same as instructor: layout + hidden error/success styles)*
+
+```css
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+#loader {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.container {
+  width: 400px;
+  margin: 40px auto;
+  background: #f7f7f7;
+  padding: 25px;
+  border-radius: 8px;
+}
+
+.error, .success {
+  padding: 10px;
+  margin: 10px auto;
+  width: 400px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.error {
+  background: #ffdddd;
+  color: #c00;
+  border: 1px solid #c00;
+}
+
+.success {
+  background: #ddffdd;
+  color: #0a0;
+  border: 1px solid #0a0;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  padding: 10px;
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: none;
+}
+```
+
+---
+
+# ✅ 3. `script.js`
+
+*(Matches exactly what instructor did so far — hide error/success)*
+
+```js
+const error = document.getElementById("error");
+const success = document.getElementById("success");
+
+// Hide initially
+error.style.display = "none";
+success.style.display = "none";
+```
+
+This is exactly where the instructor stops in this video:
+✔ error + success referenced
+✔ both `.style.display = 'none'`
+✔ loader + form untouched yet
+
+Next video will extract token from URL & call backend to validate — I can generate that too when you're ready.
+
+---
+
+# ✅ 4. Update your Express server (TypeScript)
+
+Inside `src/index.ts`, add:
+
+```ts
+import path from "path";
+import express from "express";
+
+app.use(express.static(path.join(__dirname, "public")));
+```
+
+⚠️ IMPORTANT
+When using TypeScript + ts-node-dev, final build folder becomes:
+
+```
+dist/
+ ├─ public/
+ ├─ index.js
+```
+
+So ensure copy of public folder is included in your build OR use this if you want src-level access during dev:
+
+```ts
+app.use(express.static(path.join(process.cwd(), "src", "public")));
+```
+
+---
+
+# ✅ 5. Access the HTML
+
+Open:
+
+```
+http://localhost:8989/reset-password.html
+```
+
+--------------
+
+Perfect — here are the **exact code snippets** from the transcript, cleanly structured and ready to paste into your `script.js`.
+
+I am giving ONLY the snippets (no explanations), exactly matching what the instructor implemented.
+
+---
+
+
+```javascript
+// DOM Elements
+const error = document.getElementById("error");
+const success = document.getElementById("success");
+const loader = document.getElementById("loader");
+const formContainer = document.getElementById("form-container");
+const form = document.getElementById("reset-form");
+const password = document.getElementById("password");
+const confirmPassword = document.getElementById("confirm");
+
+// Hide error & success initially
+error.style.display = "none";
+success.style.display = "none";
+
+
+// ------------------------------------------
+// Display Error
+// ------------------------------------------
+function displayError(message) {
+    // remove success if any
+    success.style.display = "none";
+
+    // set error text
+    error.innerText = message;
+
+    // show error
+    error.style.display = "block";
+}
+
+
+// ------------------------------------------
+// Display Success
+// ------------------------------------------
+function displaySuccess(message) {
+    // remove error if any
+    error.style.display = "none";
+
+    // set success text
+    success.innerText = message;
+
+    // show success
+    success.style.display = "block";
+}
+
+
+// ------------------------------------------
+// Password Regex From Validation Schema
+// ------------------------------------------
+const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+
+// ------------------------------------------
+// Form Submit
+// ------------------------------------------
+form.addEventListener("submit", handleSubmit);
+
+async function handleSubmit(event) {
+    event.preventDefault(); // stop default form submit
+    console.log("submitting");
+
+    // ---------------------------
+    // Validations
+    // ---------------------------
+
+    if (!password.value.trim()) {
+        displayError("Password is missing");
+        return;
+    }
+
+    if (!passwordRegex.test(password.value)) {
+        displayError("Password is too simple. Use alphanumeric with special characters.");
+        return;
+    }
+
+    if (password.value !== confirmPassword.value) {
+        displayError("Passwords do not match");
+        return;
+    }
+
+
+    // -----------------------------------
+    // Disable button & show loader text
+    // -----------------------------------
+    const button = form.querySelector("button");
+    button.disabled = true;
+    button.innerText = "Please wait...";
+
+
+    // -----------------------------------
+    // Submit Updated Password
+    // -----------------------------------
+    try {
+        const res = await fetch("/update-password", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json; charset=UTF-8"
+            },
+            body: JSON.stringify({
+                token,
+                userId,
+                password: password.value
+            })
+        });
+
+        // Handle errors
+        if (!res.ok) {
+            const { error: errMsg } = await res.json();
+            displayError(errMsg);
+            button.disabled = false;
+            button.innerText = "Reset Password";
+            return;
+        }
+
+        // Success
+        displaySuccess("Your password is reset successfully!");
+
+        // Reset form fields
+        password.value = "";
+        confirmPassword.value = "";
+
+    } catch (err) {
+        displayError("Something went wrong. Try again.");
+    }
+
+    // Enable button again
+    button.disabled = false;
+    button.innerText = "Reset Password";
+}
+```
+
+---
+
+# ❗ IMPORTANT
+
+Your script **also needs** the `token` and `userId` that were extracted earlier when validating the link.
+If you want, I can also generate that piece — it comes from:
+
+```js
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
+const userId = params.get("id");
+```
+
+---------
 

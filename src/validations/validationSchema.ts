@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 // const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
 
 // At least one letter, one number, and one special character
-const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]+$/;
+import { strongPasswordRegex } from '#/utils/constants';
 
 export const createUserSchema = yup.object({
     name: yup

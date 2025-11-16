@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Loader -->
+    <h1 id="loader">Please wait...</h1>
+
+    <!-- Error + Success Messages -->
+    <div id="error" class="error">Something went wrong</div>
+    <div id="success" class="success">Success!</div>
+
+    <!-- Form Container -->
+    <div class="container" id="form-container">
+      <h2>Reset Password</h2>
+
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="password">New Password</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter new password"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirm">Confirm Password</label>
+          <input
+            id="confirm"
+            type="password"
+            placeholder="Confirm password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn">Update Password</button>
+      </form>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

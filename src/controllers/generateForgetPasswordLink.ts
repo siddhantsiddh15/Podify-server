@@ -4,7 +4,7 @@ import User from "#/models/user";
 import { generateToken } from "#/utils/helper";
 import PasswordResetToken from "#/models/passwordResetToken";
 import { sentResetPasswordMail } from "#/utils/mail";
-import { PASSWORD_RESET_LINK } from "#/config/variables";
+import { PASSWORD_RESET_LINK,BASE_URL } from "#/config/variables";
 
 export async function generateForgetPasswordLink(req : Request, res: Response){
     // find the user by email. if not found return 404
@@ -33,7 +33,7 @@ export async function generateForgetPasswordLink(req : Request, res: Response){
     await PasswordResetToken.create({owner: user._id, token})
 
     // Construct reset URL
-    const resetUrl = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`
+    const resetUrl = `${BASE_URL}${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`
 
     // Send email
     await sentResetPasswordMail(resetUrl, user.email);

@@ -44,13 +44,6 @@ export async function sentResetPasswordMail(link: string, email: string){
         from: "auth@myapp.com",
         to: email,
         subject: "Reset Password Link",
-        // html: `
-        //     <h2>Forget Password</h2>
-        //     <p>${message}</p>
-        //     <a href="${link}" style="padding:10px 20px;background:#111;color:#fff;text-decoration:none;">
-        //         Reset Password
-        //     </a>
-        // `,
         html:generateTemplate({
             title: "Reset Password",
             message: message,
@@ -87,13 +80,6 @@ export async function sentResetPasswordSuccessMail({
         from: "auth@myapp.com",
         to: email,
         subject: "Password Changed!",
-        // html: `
-        //     <h2>Forget Password</h2>
-        //     <p>${message}</p>
-        //     <a href="${link}" style="padding:10px 20px;background:#111;color:#fff;text-decoration:none;">
-        //         Reset Password
-        //     </a>
-        // `,
         html:generateTemplate({
             title: "Password Updated",
             message: message,
