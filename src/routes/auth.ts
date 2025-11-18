@@ -8,6 +8,8 @@ import { generateForgetPasswordLink } from "#/controllers/generateForgetPassword
 import { isValidPasswordResetToken, grantValid } from "#/controllers/isValidPasswordResetToken";
 import { tokenAndIdValidation } from "#/validations/tokenAndIdValidation";
 import { updatePassword } from "#/controllers/updatePassword";
+import { signInValidationSchema } from "#/validations";
+import { signIn } from "#/controllers/signIn";
 // import { sendReVerificationMail } from "#/utils/mail";
 const router = Router();
 
@@ -19,6 +21,7 @@ router.post('/re-verify-email', sendReVerificationToken);
 router.post('/generate-forget-password-link', generateForgetPasswordLink)
 router.post('/password-reset-token', validate(tokenAndIdValidation),isValidPasswordResetToken, grantValid);
 router.post('/update-password', validate(updatePasswordSchema), isValidPasswordResetToken, updatePassword)
+router.post('/sign-in', validate(signInValidationSchema), signIn)
 
 
 export default router;

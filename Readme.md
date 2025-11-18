@@ -3483,3 +3483,252 @@ const userId = params.get("id");
 
 ---------
 
+sign in flow
+
+---
+
+## **1. What is JWT (JSON Web Token)?**
+
+A JWT has **3 parts**:
+
+1. **Header**
+
+   * Algorithm (HS256 etc.)
+   * Token type (JWT)
+
+2. **Payload**
+
+   * Contains data you want to encode (e.g., userId)
+   * ⚠️ Do NOT add sensitive information
+   * Visible to anyone on jwt.io
+
+3. **Signature**
+
+   * Ensures token validity
+   * Generated using a **secret key**
+   * Prevents tampering
+
+---
+
+## **2. Installing JWT**
+
+```bash
+npm i jsonwebtoken
+npm i -D @types/jsonwebtoken
+```
+
+---
+
+## **3. Why store token in DB?**
+
+* JWTs cannot be manually expired.
+* If user logs out → remove token from DB.
+* At authentication time:
+
+  * Check **token exists in DB**
+  * Then verify JWT signature
+* Protects against using old/logged-out tokens.
+
+---
+
+## **4. Sign-In Flow Summary**
+
+1. Validate request (email + password existence check).
+2. Find user by email.
+3. Compare password using model method `comparePassword()`.
+4. If match → generate JWT token:
+
+   ```ts
+   jwt.sign({ userId: user._id }, JWT_SECRET);
+   ```
+5. Save token to `user.tokens`.
+6. Send response with user profile + token.
+
+
+# ⭐ **1. Validation Schema (sign-in)**
+
+```ts
+export const signInValidationSchema = yup.object().shape({
+  email: yup.string().email().required("Email is required"),
+  password: yup.string().required("Password is required"),
+});
+```
+
+---
+
+# ⭐ **2. Controller: signIn()**
+
+```ts
+import jwt from "jsonwebtoken";
+import User from "../models/user";
+import { JWT_SECRET } from "../utils/variables";
+
+export const signIn = async (req, res) => {
+  const { email, password } = req.body;
+
+  // 1. Find user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(403).json({ error: "Email/Password mismatch" });
+  }
+
+  // 2. Compare password
+  const matched = await user.comparePassword(password);
+  if (!matched) {
+    return res.status(403).json({ error: "Email/Password mismatch" });
+  }
+
+  // 3. Generate JWT token
+  const token = jwt.sign(
+    { userId: user._id },
+    JWT_SECRET,
+    // optional: { expiresIn: "30d" }
+  );
+
+  // 4. Save token in DB
+  user.tokens.push(token);
+  await user.save();
+
+  // 5. Respond with user profile + token
+  res.json({
+    profile: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      verified: user.verified,
+      avatar: user?.avatar?.url,
+      followers: user.followers.length,
+      followings: user.following.length,
+    },
+    token,
+  });
+};
+```
+
+---
+
+# ⭐ **3. Add Route**
+
+```ts
+router.post("/sign-in", validate(signInValidationSchema), signIn);
+```
+
+---
+
+# ⭐ **4. Add JWT Secret in .env**
+
+```env
+JWT_SECRET=your_generated_secret_here
+```
+
+Generate via:
+
+```js
+node
+require("crypto").randomBytes(36).toString("hex")
+```
+
+---
+
+# ⭐ **5. User Model Snippet (comparePassword)**
+
+```ts
+userSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+```
+
+---
+
+# ⭐ **6. variables.ts**
+
+```ts
+export const JWT_SECRET = process.env.JWT_SECRET as string;
+```
+
+---
+
+# ⭐ **7. Example Postman Request**
+
+```
+POST /auth/sign-in
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "123456"
+}
+```
+
+
+---
+
+# **🔐 Sign-In Flow Diagram (Textual)**
+
+```
+                 ┌──────────────────────────┐
+                 │  Client Sends Request    │
+                 │  POST /auth/sign-in      │
+                 │  { email, password }     │
+                 └─────────────┬────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Validate input using     │
+                 │ signInValidationSchema   │
+                 └─────────────┬────────────┘
+                               │
+                   Valid? ─────┼────── No ───────────►
+                               │                     Return 403
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Find user by email       │
+                 │ User.findOne({ email })  │
+                 └─────────────┬────────────┘
+                               │
+                    Found? ────┼────── No ───────────►
+                               │                     Return 403
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Compare Password         │
+                 │ user.comparePassword()   │
+                 └─────────────┬────────────┘
+                               │
+                 Matched? ─────┼────── No ───────────►
+                               │                     Return 403
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Create JWT Token         │
+                 │ jwt.sign( { userId },    │
+                 │            JWT_SECRET )  │
+                 └─────────────┬────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Save Token in DB         │
+                 │ user.tokens.push(token)  │
+                 │ user.save()              │
+                 └─────────────┬────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────┐
+                 │ Send Response             │
+                 │ {                        │
+                 │   profile: {...},        │
+                 │   token: token           │
+                 │ }                        │
+                 └──────────────────────────┘
+```
+
+---
+
+# **🔥 Summary of the Flow (Very Simple)**
+
+1. **User sends email + password**
+2. **Validate email + password exists**
+3. **Check user exists in DB**
+4. **Compare password with hashed password**
+5. **If correct → Generate JWT**
+6. **Store JWT in user.tokens array**
+7. **Send profile + token back to client**
+

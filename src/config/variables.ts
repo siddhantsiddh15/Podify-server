@@ -3,5 +3,6 @@ export const {
     MAILTRAP_PASS,
     MONGO_URI,
     PASSWORD_RESET_LINK,
-    BASE_URL
+    BASE_URL,
+    JWT_SECRET = ""
 } = process.env

@@ -42,6 +42,8 @@ userSchema.methods.isPasswordMatch = async function (candidate : string): Promis
     return bcrypt.compare(candidate, this.password)
 }
 
+
+
 const User: Model<UserDocument> = model<UserDocument>('user', userSchema)
 
 export default User;
