@@ -3732,3 +3732,730 @@ Content-Type: application/json
 6. **Store JWT in user.tokens array**
 7. **Send profile + token back to client**
 
+----------------
+
+---
+
+# ✅ **NOTES: JWT Verification + isAuth Flow**
+
+### **1. After Sign-In Response**
+
+When user logs in successfully, server returns:
+
+* **profile** (id, name, email, followers, following…)
+* **token (JWT)**
+
+This JWT will act like the password for all future “protected routes”.
+
+---
+
+# ✅ **2. How Authorization Token Is Sent**
+
+Token is sent through **request headers**, NOT body.
+
+```
+Authorization: Bearer <token>
+```
+
+Example:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+# ✅ **3. How to Read Authorization Header**
+
+In your route:
+
+```ts
+const { authorization } = req.headers;
+```
+
+Authorization header looks like:
+
+```
+"Bearer <token>"
+```
+
+So you split it by `"Bearer "`:
+
+```ts
+const token = authorization?.split("Bearer ")[1];
+```
+
+This gives you the pure JWT.
+
+---
+
+# ✅ **4. Verifying JWT**
+
+Use:
+
+```ts
+const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+```
+
+JWT contains the payload you signed earlier:
+
+```ts
+{
+  userId: "65kjd9839dj9d..."
+  iat: 1283938993
+}
+```
+
+---
+
+# ✅ **5. After Decoding – Get User**
+
+```ts
+const user = await User.findById(payload.userId);
+```
+
+If user does not exist → unauthorized.
+
+---
+
+# 🔥 **Final Response Structure**
+
+If token is valid → return same profile object as sign-in.
+
+---
+
+# 🧩 **COMPLETE isAuth ROUTE **
+
+```ts
+router.get("/is-auth", async (req, res) => {
+  try {
+    const { authorization } = req.headers;
+
+    const token = authorization?.split("Bearer ")[1];
+
+    if (!token) {
+      return res.status(403).json({ error: "Unauthorized request" });
+    }
+
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      return res.status(403).json({ error: "Unauthorized request" });
+    }
+
+    return res.json({
+      profile: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        verified: user.verified,
+        avatar: user.avatar?.url,
+        followers: user.followers.length,
+        followings: user.following.length,
+      }
+    });
+
+  } catch (err) {
+    return res.status(403).json({ error: "Unauthorized request" });
+  }
+});
+```
+
+---
+
+# 📝 **Why Token Must Start with “Bearer ”**
+
+Because many systems send multiple types of tokens, so:
+
+```
+Bearer <token>
+Basic <token>
+Digest <token>
+```
+
+"Bearer" = JWT token.
+
+---
+
+# 🧠 **JWT Verify Throws Error If Token Is Tampered**
+
+Example:
+
+* Missing characters
+* Changed characters
+
+So always wrap verification inside `try / catch`.
+
+---
+
+# ⭐  Middleware Version (clean & reusable)
+
+```ts
+import { NextFunction } from "express";
+
+export const isAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { authorization } = req.headers;
+    const token = authorization?.split("Bearer ")[1];
+
+    if (!token) {
+      return res.status(403).json({ error: "Unauthorized request" });
+    }
+
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      return res.status(403).json({ error: "Unauthorized request" });
+    }
+
+    req.user = user; // attach for next middleware
+    next();
+
+  } catch (error) {
+    return res.status(403).json({ error: "Unauthorized request" });
+  }
+};
+```
+
+---
+
+===============================================================
+      AUTHENTICATED REQUEST (is-auth flow)
+===============================================================
+
+
+┌───────────────────────────┐
+│ Client sends request      │
+│ GET /auth/is-auth         │
+│ with Header:              │
+│ Authorization: Bearer xxx │
+└──────────────┬────────────┘
+               │
+               ▼
+┌───────────────────────────┐
+│ 1. Extract token          │
+│  authorization?.split     │
+└──────────────┬────────────┘
+      token OK │   no token
+               │
+               ▼
+     ┌────────────────────┐
+     │ Return 403         │
+     │ "Unauthorized"     │
+     └────────────────────┘
+               ▲
+               │
+               │ token exists
+               ▼
+┌──────────────────────────────┐
+│ 2. Verify Token              │
+│ jwt.verify(token, SECRET)    │
+└──────────────┬───────────────┘
+   valid token │   invalid token
+               │
+               ▼
+      ┌────────────────────┐
+      │ Throw error →      │
+      │ Unauthorized       │
+      └────────────────────┘
+               ▲
+               │ valid userId
+               ▼
+┌──────────────────────────────┐
+│ 3. Extract userId from       │
+│    payload (decoded token)   │
+│    e.g. payload.userId       │
+└──────────────┬───────────────┘
+               │ user found?
+               ▼
+┌──────────────────────────────┐
+│ 4. Find user in DB           │
+│    User.findById(userId)     │
+└──────────────┬───────────────┘
+      exists   │   not exists
+               │
+               ▼
+     ┌────────────────────────┐
+     │ Return 403 Unauthorized│
+     └────────────────────────┘
+               ▲
+               │
+               │ valid user
+               ▼
+┌──────────────────────────────┐
+│ 5. Respond with profile      │
+│ (same format as sign-in)     │
+└──────────────────────────────┘
+
+----------------------
+
+Below are **clean study notes + TypeScript code snippets** *exactly matching your Udemy lecture* (Middleware → mustAuth → attaching user to request → fixing `req.user` type → using JWT → verifying authorization header → Postman testing).
+
+This is structured so you can revise easily + plug code directly into your project.
+
+---
+
+# 📘 **STUDY NOTES — Authentication vs Authorization (TypeScript + JWT)**
+
+### **1. Authentication**
+
+* Verifies **who the user is**.
+* Happens during **sign-in**.
+* User sends **email + password**.
+* Server:
+
+  * Finds user by email.
+  * Compares hashed passwords (bcrypt).
+  * If valid → generates **JWT token**.
+  * Sends token to client.
+
+### **2. Authorization**
+
+* Determines **what the user can do**.
+* Happens on protected routes (upload audio, edit playlist, remove audio etc.).
+* Instead of sending email/password again:
+
+  * Client sends **token** in `Authorization` header.
+  * Format:
+
+    ```
+    Authorization: Bearer <token>
+    ```
+
+### **3. Why JWT**
+
+* Avoids asking password repeatedly.
+* Encodes userId inside token payload.
+* Can be verified using the secret key.
+
+---
+
+# 📘 **HOW Authorization Header Works**
+
+Client sends:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+Server receives:
+
+```
+req.headers.authorization → "Bearer <token>"
+```
+
+We:
+
+1. Split by `"Bearer "`
+2. Extract token
+3. Verify using `jwt.verify(token, JWT_SECRET)`
+4. Extract payload → `{ userId }`
+
+---
+
+# 📘 **mustAuth Middleware (Full Flow)**
+
+Purpose:
+
+* Validate token
+* Find user
+* Attach user to request (`req.user`)
+* Go to next middleware
+
+---
+
+
+## **2️⃣ Fixing `req.user` Type Error**
+
+### ✔ Create a global type declaration
+
+Create file:
+
+```
+src/types/express.d.ts
+```
+
+Add:
+
+```ts
+import { UserDocument } from "../models/user"; 
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: UserDocument;
+    }
+  }
+}
+```
+
+Add to `tsconfig.json`:
+
+```json
+"include": ["src"]
+```
+
+Now TypeScript knows `req.user` exists everywhere.
+
+---
+
+## **3️⃣ mustAuth Middleware (final version from lecture)**
+
+`src/middleware/mustAuth.ts`
+
+```ts
+import { RequestHandler } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import User from "../models/user";
+import { JWT_SECRET } from "../config";
+
+export const mustAuth: RequestHandler = async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+
+    const token = authorization?.split("Bearer ")[1];
+
+    if (!token) {
+      return res.status(403).json({
+        error: "Unauthorized request",
+      });
+    }
+
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const id = payload.userId;
+
+    const user = await User.findOne({
+      _id: id,
+      tokens: token,
+    });
+
+    if (!user) {
+      return res.status(403).json({
+        error: "Unauthorized request",
+      });
+    }
+
+    // Attach user to req
+    req.user = user;
+
+    next();
+  } catch (error) {
+    return res.status(403).json({
+      error: "Unauthorized request",
+    });
+  }
+};
+```
+
+---
+
+## **4️⃣ Using mustAuth in Router**
+
+`auth.router.ts`:
+
+```ts
+router.get("/is-auth", mustAuth, (req, res) => {
+  return res.json({
+    profile: req.user,
+  });
+});
+```
+
+---
+
+# 🧪 **Testing is-auth in Postman**
+
+### Step 1: Sign In
+
+Send POST:
+
+```
+POST /auth/sign-in
+```
+
+Body:
+
+```json
+{
+  "email": "test@test.com",
+  "password": "123456"
+}
+```
+
+Copy token from response.
+
+---
+
+### Step 2: Test is-auth
+
+Make a GET request:
+
+```
+GET /auth/is-auth
+```
+
+In **Headers**:
+
+| KEY           | VALUE          |
+| ------------- | -------------- |
+| Authorization | Bearer <token> |
+
+Hit **Send**.
+
+You should get:
+
+```json
+{
+  "profile": {
+    "_id": "abc123",
+    "email": "test@test.com",
+    ...other fields
+  }
+}
+```
+
+If you get **Unauthorized request**, these are reasons:
+
+* Token missing
+* Token malformed
+* Token not in DB (tokens array)
+* Using wrong "Bearer " format
+
+---
+
+# 📘 **FULL FLOW DIAGRAM — SIGN-IN + AUTHORIZATION + MUSTAUTH**
+
+```
+          ┌─────────────────────────┐
+          │   User enters Email+Pw   │
+          └──────────────┬──────────┘
+                         ▼
+                 ┌──────────────┐
+                 │  Auth Route   │
+                 └───────┬──────┘
+                         ▼
+               Find user by email
+                         ▼
+                Compare password
+                bcrypt.compare()
+                         ▼
+              If match → generate JWT
+                     token = jwt.sign()
+                         ▼
+         Send token to client (FE / Mobile App)
+                         ▼
+            Client stores token (AsyncStorage)
+                         ▼
+──────────────────────────────────────────────────────────────
+           LATER, USER CALLS PROTECTED ROUTE
+──────────────────────────────────────────────────────────────
+                         ▼
+          Client sends token in Authorization header:
+          "Bearer <token>"
+                         ▼
+           mustAuth Middleware Triggered
+                         ▼
+      Extract token from req.headers.authorization
+                         ▼
+         jwt.verify(token, JWT_SECRET)
+                         ▼
+           Extract userId from payload
+                         ▼
+   Find user in DB → User.findOne({ _id, tokens: token })
+                         ▼
+         If no user → Unauthorized (403)
+                         ▼
+         If user found → req.user = user
+                         ▼
+                   next()
+                         ▼
+         Protected controller runs successfully
+```
+
+
+---
+
+# ✅ **Notes: Public vs Private Routes + mustAuth Middleware**
+
+### **1. What is mustAuth middleware?**
+
+* A middleware that verifies whether a user is authenticated.
+* It checks the **Authorization header**.
+* If the token is valid → allow access.
+* If NOT valid → return 401 Unauthorized.
+
+---
+
+### **2. What is a Public Route?**
+
+* A route accessible to anyone.
+* No need for token.
+* Used for things like:
+
+  * Home page
+  * Pricing page
+  * Signup
+
+👉 **Example:** `/auth/public`
+
+---
+
+### **3. What is a Private Route?**
+
+* A route that ONLY authenticated users can access.
+* Needs a **valid JWT token** in header:
+
+  ```
+  Authorization: Bearer <token>
+  ```
+
+👉 **Example:** `/auth/private`
+
+---
+
+### **4. Postman Testing**
+
+* For public route: no token needed.
+* For private route:
+
+  * Go to **Headers**
+  * Key: `Authorization`
+  * Value: `Bearer <your-jwt-token>`
+
+If token is missing or invalid → `401 Unauthorized`.
+
+---
+
+# ✅ **Code Snippets**
+
+## **1. mustAuth Middleware**
+
+```js
+import jwt from "jsonwebtoken";
+
+export const mustAuth = (req, res, next) => {
+  try {
+    const header = req.headers["authorization"];
+    if (!header) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+
+    const token = header.split(" ")[1]; // Bearer token
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // attach decoded user to request
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
+```
+
+---
+
+## **2. Public Route**
+
+```js
+router.get("/public", (req, res) => {
+  res.json({ message: "You are in public route" });
+});
+```
+
+---
+
+## **3. Private Route**
+
+```js
+router.get("/private", mustAuth, (req, res) => {
+  res.json({
+    message: "You are in private route",
+    user: req.user
+  });
+});
+```
+
+---
+
+## **4. Example Route File (authRoutes.js)**
+
+```js
+import express from "express";
+import { mustAuth } from "../middlewares/mustAuth.js";
+
+const router = express.Router();
+
+// Public Route (no token)
+router.get("/public", (req, res) => {
+  res.json({ message: "You are in public route" });
+});
+
+// Private Route (requires token)
+router.get("/private", mustAuth, (req, res) => {
+  res.json({ message: "You are in private route" });
+});
+
+export default router;
+```
+
+---
+
+## **5. Server Setup**
+
+```js
+import express from "express";
+import authRoutes from "./routes/authRoutes.js";
+
+const app = express();
+app.use(express.json());
+
+app.use("/auth", authRoutes);
+
+app.listen(8989, () => {
+  console.log("Server running on 8989");
+});
+```
+
+---
+
+# ✅ **How to Test in Postman**
+
+### ✔ **Public Route**
+
+```
+GET http://localhost:8989/auth/public
+```
+
+Response:
+
+```json
+{ "message": "You are in public route" }
+```
+
+---
+
+### ✔ **Private Route**
+
+```
+GET http://localhost:8989/auth/private
+```
+
+If no token →
+
+```json
+{ "error": "No token provided" }
+```
+
+If valid token (in Headers: Authorization → Bearer <token>):
+
+```json
+{ 
+  "message": "You are in private route",
+  "user": { "userId": "...", "iat": ..., "exp": ... }
+}
+```
+
+---
+
