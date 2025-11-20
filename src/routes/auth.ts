@@ -12,6 +12,8 @@ import { updatePassword } from "#/controllers/updatePassword";
 import { signInValidationSchema } from "#/validations";
 import { signIn } from "#/controllers/signIn";
 import { mustAuth } from "#/middleware/mustAuth";
+import { updateProfile } from "#/controllers/updateProfile";
+import { fileParser, RequestWithFiles } from "#/middleware/fileParser";
 // import { sendReVerificationMail } from "#/utils/mail";
 const router = Router();
 
@@ -24,6 +26,12 @@ router.post('/generate-forget-password-link', generateForgetPasswordLink)
 router.post('/password-reset-token', validate(tokenAndIdValidation),isValidPasswordResetToken, grantValid);
 router.post('/update-password', validate(updatePasswordSchema), isValidPasswordResetToken, updatePassword)
 router.post('/sign-in', validate(signInValidationSchema), signIn)
+router.post('/update-profile', fileParser, (req : RequestWithFiles, res) => {
+    console.log("BODY:", req.body);   // { name: "Siddhant" }
+    console.log("FILES:", req.files); // { avatar: File }
+
+    return res.json({ success: true });
+})
 
 
 router.get("/is-auth", mustAuth, (req, res) => {
