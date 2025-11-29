@@ -4,5 +4,9 @@ export const {
     MONGO_URI,
     PASSWORD_RESET_LINK,
     BASE_URL,
-    JWT_SECRET = ""
+    JWT_SECRET = "",
+    CLOUD_NAME,
+    CLOUD_KEY,
+    CLOUD_SECRET,
+    CLOUD_URL
 } = process.env

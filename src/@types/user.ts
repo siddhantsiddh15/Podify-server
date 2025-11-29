@@ -1,7 +1,8 @@
-import { ObjectId } from "mongoose";
+import { ObjectId} from "mongoose";
 import { Request } from "express";
 
 export interface UserDocument {
+    id?: ObjectId;
     name: string;
     email: string;
     password: string;

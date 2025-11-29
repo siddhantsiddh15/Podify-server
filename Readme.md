@@ -438,6 +438,8 @@ brew install mongodb-community
   - Use the provided **Intel Mac** or **Apple Silicon Mac** command from MongoDB docs.
 - Example to run MongoDB server in foreground:
 
+<!-- db error fix  -->
+
 ```bash
 mongod --config /opt/homebrew/etc/mongod.conf --fork
 ```
@@ -5230,3 +5232,659 @@ FILES: { avatar: File { ... } }
 ```
 
 ---
+---
+
+
+### **1. Why Cloudinary?**
+
+* Free tier with **no credit card required**.
+* Very easy to integrate with Node.js.
+* Auto-generates **HTTPS image URLs**.
+* Stores & optimizes images in the cloud.
+* Great for React Native apps where static server hosting is not ideal.
+
+---
+
+# ✅ **2. What values you need from Cloudinary dashboard**
+
+After creating an account → Dashboard shows:
+
+* **Cloud Name**
+* **API Key**
+* **API Secret**
+
+These go inside your `.env` file.
+
+---
+
+# ✅ **3. Install Cloudinary**
+
+```sh
+npm install cloudinary
+```
+
+You’ll use the **v2** SDK.
+
+---
+
+# ✅ **4. Add ENV variables**
+
+`.env`
+
+```env
+CLOUD_NAME=your_cloud_name
+CLOUD_KEY=your_api_key
+CLOUD_SECRET=your_api_secret
+```
+
+---
+
+# ✅ **5. Add to utils/variables.ts**
+
+Create file:
+
+`src/utils/variables.ts`
+
+```ts
+import dotenv from "dotenv";
+dotenv.config();
+
+export const CLOUD_NAME = process.env.CLOUD_NAME as string;
+export const CLOUD_KEY = process.env.CLOUD_KEY as string;
+export const CLOUD_SECRET = process.env.CLOUD_SECRET as string;
+```
+
+---
+
+# ✅ **6. Cloudinary Setup File**
+
+Create folder:
+
+```
+src/cloud/index.ts
+```
+
+### **index.ts**
+
+```ts
+import { v2 as cloudinary } from "cloudinary";
+import { CLOUD_NAME, CLOUD_KEY, CLOUD_SECRET } from "../utils/variables";
+
+cloudinary.config({
+  cloud_name: CLOUD_NAME,
+  api_key: CLOUD_KEY,
+  api_secret: CLOUD_SECRET,
+  secure: true, // ensures HTTPS URL
+});
+
+export default cloudinary;
+```
+
+✔ This registers Cloudinary globally.
+
+---
+
+# ✅ **7. Upload Function (you will need this in next lecture)**
+
+This will upload profile images.
+
+Create:
+
+`src/cloud/upload.ts`
+
+```ts
+import cloudinary from "./index";
+import { File } from "formidable";
+
+export const uploadToCloud = async (file: File) => {
+  return await cloudinary.uploader.upload(file.filepath, {
+    folder: "profiles",
+    resource_type: "image",
+  });
+};
+```
+
+**Response from Cloudinary** looks like:
+
+```json
+{
+  "secure_url": "https://res.cloudinary.com/.../image/upload/...jpg",
+  "public_id": "profiles/abcxyz",
+  ...
+}
+```
+
+You'll use `secure_url` in DB.
+
+---
+
+# ✅ **8. Using File Parser + Cloud Upload in Controller**
+
+Example controller:
+
+`src/controllers/profile.ts`
+
+```ts
+import { RequestWithFiles } from "../middleware/fileParser";
+import { uploadToCloud } from "../cloud/upload";
+
+export const updateProfile = async (req: RequestWithFiles, res) => {
+  try {
+    const { name } = req.body;
+    const file = req.files?.avatar; // assuming key=avatar
+
+    let uploadedFile = null;
+
+    if (file) {
+      uploadedFile = await uploadToCloud(file);
+    }
+
+    return res.json({
+      success: true,
+      name,
+      avatar: uploadedFile?.secure_url || null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Profile update failed" });
+  }
+};
+```
+
+---
+
+# 🎯 **Final Folder Structure (for clarity)**
+
+```
+src/
+ ├─ cloud/
+ │   ├─ index.ts
+ │   └─ upload.ts
+ ├─ controllers/
+ │   └─ profile.ts
+ ├─ middleware/
+ │   └─ fileParser.ts
+ ├─ utils/
+ │   └─ variables.ts
+ └─ routes/
+     └─ profileRoutes.ts
+```
+
+---
+
+
+Upload to cloud 
+
+
+---
+
+
+### **1️⃣ Update Profile Route Setup**
+
+* In router:
+
+  * Add middlewares in order:
+
+    1. `mustAuth` → ensures user is authenticated.
+    2. `fileParser` → parse `multipart/form-data`, read fields + files.
+    3. `updateProfile` controller → update name + profile image.
+
+---
+
+### **2️⃣ updateProfile Controller Steps**
+
+#### **Step 1: Extract data**
+
+```ts
+const { name } = req.body;
+const avatar = req.files?.avatar;
+```
+
+#### **Step 2: Get authenticated user**
+
+```ts
+const user = await User.findById(req.user.id);
+if (!user) throw new Error("Something went wrong. User not found");
+```
+
+---
+
+### **3️⃣ Validate Name**
+
+* Must be a string
+* Must be at least 3 characters
+
+---
+
+### **4️⃣ Handle Avatar Upload Using Cloudinary**
+
+Flow:
+
+1. If avatar file exists
+2. Remove old avatar (if exists)
+3. Upload new one
+4. Save new URL + public_id into DB
+
+---
+
+### **5️⃣ Cloudinary Transformations Used**
+
+* Resize to **300 × 300**
+* Crop as thumbnail
+* Focus on face using `gravity: "face"`
+
+---
+
+### **6️⃣ Save Updated User**
+
+```ts
+await user.save();
+```
+
+---
+
+### **7️⃣ Response**
+
+```ts
+res.json(user.avatar);
+```
+
+---
+
+---
+
+## ✅ **updateProfile Controller (Final Version)**
+
+```ts
+import { RequestHandler } from "express";
+import formidable from "formidable";
+import cloudinary from "../cloud"; // your cloud/index.ts
+
+export const updateProfile: RequestHandler = async (req: any, res) => {
+  const { name } = req.body;
+  const avatar = req.files?.avatar as formidable.File | undefined;
+
+  // Find User
+  const user = await User.findById(req.user.id);
+  if (!user) throw new Error("Something went wrong. User not found");
+
+  // Validate Name
+  if (typeof name !== "string")
+    return res.status(422).json({ error: "Invalid name" });
+
+  if (name.trim().length < 3)
+    return res.status(422).json({ error: "Invalid name" });
+
+  user.name = name.trim();
+
+  // Handle Avatar Upload
+  if (avatar) {
+    // 1. Remove old avatar
+    if (user.avatar?.public_id) {
+      await cloudinary.uploader.destroy(user.avatar.public_id);
+    }
+
+    // 2. Upload new avatar
+    const result = await cloudinary.uploader.upload(avatar.filepath, {
+      width: 300,
+      height: 300,
+      crop: "thumb",
+      gravity: "face",
+    });
+
+    // 3. Save new data to DB
+    user.avatar = {
+      url: result.secure_url,
+      public_id: result.public_id,
+    };
+  }
+
+  // Save
+  await user.save();
+
+  res.json(user.avatar);
+};
+```
+
+---
+
+## ✅ **Router Setup**
+
+```ts
+import { Router } from "express";
+import { mustAuth } from "../middlewares/mustAuth";
+import { fileParser } from "../middlewares/fileParser";
+import { updateProfile } from "../controllers/user";
+
+const router = Router();
+
+router.patch("/update-profile", mustAuth, fileParser, updateProfile);
+
+export default router;
+```
+
+---
+
+## ✅ **fileParser Middleware (Fixed + Image Validation)**
+
+```ts
+import formidable from "formidable";
+import { RequestHandler } from "express";
+
+export const fileParser: RequestHandler = async (req: any, res, next) => {
+  if (!req.headers["content-type"]?.startsWith("multipart/form-data"))
+    return res.status(422).json({ error: "Only form-data allowed" });
+
+  const form = formidable({
+    multiples: false,
+    keepExtensions: true,
+  });
+
+  try {
+    const { fields, files } = await new Promise<{
+      fields: formidable.Fields;
+      files: formidable.Files;
+    }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    });
+
+    req.body = {};
+    req.files = {};
+
+    // Assign fields
+    for (const key in fields) {
+      req.body[key] = Array.isArray(fields[key])
+        ? fields[key][0]
+        : fields[key];
+    }
+
+    // Allowed image types
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+    // Assign files + validate
+    for (const key in files) {
+      const file = Array.isArray(files[key]) ? files[key][0] : files[key];
+      if (!file) continue;
+
+      if (!allowed.includes(file.mimetype || "")) {
+        return res.status(422).json({
+          error: `Invalid file type for ${key}. Only images allowed.`,
+        });
+      }
+
+      req.files[key] = file;
+    }
+
+    next();
+  } catch (err) {
+    console.error("Formidable error:", err);
+    res.status(500).json({ error: "File upload failed" });
+  }
+};
+```
+
+---
+
+## ✅ **Cloudinary Setup (`cloud/index.ts`)**
+
+
+```ts
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
+export default cloudinary;
+```
+
+---
+
+Logout structure
+
+
+✔ Logout (single device)
+✔ Logout from all devices
+✔ Saving token on `req.token`
+✔ Extending Request type
+✔ Filtering tokens
+✔ Final router setup
+✔ Test examples
+
+---
+
+### **1. Why logout needs POST?**
+
+* Convention: logout should be a POST request
+* Even though no body is sent → POST is preferred over GET
+
+---
+
+### **2. Two types of logout**
+
+1. **Logout (remove only current device token)**
+2. **Logout from all (clear all tokens)**
+
+User may be logged in on multiple devices.
+We store **each login token** in `user.tokens[]`.
+
+---
+
+### **3. Why we store token in `req.token`?**
+
+* We already extract token in `mustAuth` middleware
+* Instead of re-parsing header again in logout, we simply store:
+  `req.token = token`
+
+---
+
+### **4. Why extend Request to include token?**
+
+Because TS doesn’t know you added `req.token`, so you must extend types.
+
+---
+
+### **5. How logout works**
+
+* Extract `req.user` (from mustAuth)
+* Extract `req.token`
+* Check query `?fromAll=yes`
+* If fromAll=yes → remove all `tokens[]`
+* Else → remove only current token using `.filter()`
+* Save user document
+
+---
+
+# 💻 **CODE SNIPPETS (Copy–Paste Ready)**
+
+---
+
+# 1️⃣ **Extend Request type to support `req.token`**
+
+Create:
+`src/types/express.d.ts`
+
+```ts
+import { UserDocument } from "../models/user";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: UserDocument;
+      token?: string;
+    }
+  }
+}
+```
+
+Update tsconfig:
+
+```json
+{
+  "compilerOptions": {
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+  }
+}
+```
+
+---
+
+# 2️⃣ **Modify mustAuth middleware to add `req.token`**
+
+`middlewares/mustAuth.ts`
+
+```ts
+import User from "../models/user";
+import jwt from "jsonwebtoken";
+
+export const mustAuth: RequestHandler = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+
+    const token = authHeader.replace("Bearer ", "");
+    req.token = token; // <---- IMPORTANT
+
+    const { id } = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+
+    const user = await User.findById(id);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+};
+```
+
+---
+
+# 3️⃣ **Logout Controller**
+
+`controllers/auth.ts`
+
+```ts
+import { RequestHandler } from "express";
+import User from "../models/user";
+
+export const logout: RequestHandler = async (req, res) => {
+  try {
+    const fromAll = req.query.fromAll; // ?fromAll=yes
+    const token = req.token;
+    const user = await User.findById(req.user!._id);
+
+    if (!user) return res.status(500).json({ error: "Something went wrong" });
+
+    // LOGOUT FROM ALL DEVICES
+    if (fromAll === "yes") {
+      user.tokens = [];
+    } 
+    else {
+      // LOGOUT ONLY CURRENT DEVICE
+      user.tokens = user.tokens.filter((t) => t !== token);
+    }
+
+    await user.save();
+
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Logout failed" });
+  }
+};
+```
+
+---
+
+# 4️⃣ **Route Setup**
+
+`routes/auth.ts`
+
+```ts
+import { Router } from "express";
+import { logout } from "../controllers/auth";
+import { mustAuth } from "../middlewares/mustAuth";
+
+const router = Router();
+
+router.post("/logout", mustAuth, logout);
+
+export default router;
+```
+
+---
+
+# 🧪 **POSTMAN TESTING NOTES**
+
+### **1️⃣ Logout Single Device**
+
+* endpoint:
+  `POST http://localhost:8000/auth/logout`
+
+* headers:
+
+```
+Authorization: Bearer <token>
+```
+
+* Response:
+
+```json
+{
+  "success": true
+}
+```
+
+* Database: tokens[] should remove ONLY that token.
+
+---
+
+### **2️⃣ Logout from ALL Devices**
+
+Use query params:
+
+```
+POST /auth/logout?fromAll=yes
+```
+
+Headers:
+
+```
+Authorization: Bearer <any valid token>
+```
+
+Response:
+
+```json
+{
+  "success": true
+}
+```
+
+Database: `tokens[]` becomes empty.
+
+---
+
+Update the middleware mustAuth to check the token from database
+
+✅ FIX mustAuth MIDDLEWARE (CRITICAL)
+❌ Current (buggy)
+```
+const user = await User.findById(payload.id);
+```
+
+✅ Correct (SECURE)
+
+```
+
+const user = await User.findOne({
+  _id: payload.id,
+  tokens: token,   // 🔥 THIS is the fix
+});
+
+```

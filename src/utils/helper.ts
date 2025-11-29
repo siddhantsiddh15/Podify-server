@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import { UserDocument } from "#/@types/user";
 
 export const generateToken = (length : number = 6) : string => {
     let OTP = '';
@@ -17,4 +18,14 @@ export const hashToken = async (token : string) : Promise<string> => {
 
 export const verifyToken = async (plain: string, hashed: string) : Promise<boolean> => {
     return bcrypt.compare(plain, hashed)
+}
+
+
+export const formatProfile = (user: UserDocument) => {
+    return {
+        id: user.id?.toString(),
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar
+    }
 }
